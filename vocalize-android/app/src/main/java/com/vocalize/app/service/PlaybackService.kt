@@ -9,6 +9,7 @@ import com.vocalize.app.MainActivity
 import com.vocalize.app.R
 import com.vocalize.app.data.repository.MemoRepository
 import com.vocalize.app.util.AudioPlayerManager
+import com.vocalize.app.util.Constants
 import com.vocalize.app.util.NotificationHelper
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.*
@@ -66,7 +67,29 @@ class PlaybackService : Service() {
         stopSelf()
     }
 
+    private fun handlePlayAudio(intent: Intent?) {
+        val memoId = intent?.getStringExtra(Constants.EXTRA_MEMO_ID) ?: return
+        scope.launch {
+            val memo = withContext(Dispatchers.IO) { memoRepository.getMemoById(memoId) }
+            memo?.let {
+                playMemo(it.filePath, it.id, it.title, it.lastPlaybackPositionMs)
+            }
+        }
+    }
+
+    private fun handleReplayAudio(intent: Intent?) {
+        val memoId = intent?.getStringExtra(Constants.EXTRA_MEMO_ID) ?: return
+        scope.launch {
+            val memo = withContext(Dispatchers.IO) { memoRepository.getMemoById(memoId) }
+            memo?.let {
+                playMemo(it.filePath, it.id, it.title, 0L)
+            }
+        }
+    }
+
     private fun buildNotification(isPlaying: Boolean, title: String = "Vocalize"): android.app.Notification {
+        val currentPosition = audioPlayerManager.getCurrentPosition()
+        val duration = audioPlayerManager.getDuration()
         val openIntent = PendingIntent.getActivity(
             this, 0, Intent(this, MainActivity::class.java),
             PendingIntent.FLAG_IMMUTABLE
@@ -76,12 +99,27 @@ class PlaybackService : Service() {
             Intent(this, PlaybackService::class.java).setAction(ACTION_TOGGLE),
             PendingIntent.FLAG_IMMUTABLE
         )
+        val replayIntent = PendingIntent.getService(
+            this, 3,
+            Intent(this, PlaybackService::class.java).setAction(ACTION_REPLAY),
+            PendingIntent.FLAG_IMMUTABLE
+        )
         val stopIntent = PendingIntent.getService(
             this, 2,
             Intent(this, PlaybackService::class.java).setAction(ACTION_STOP),
             PendingIntent.FLAG_IMMUTABLE
         )
-        return notificationHelper.buildPlaybackNotification(title, isPlaying, openIntent, playPauseIntent, stopIntent)
+        return notificationHelper.buildPlaybackNotification(
+            title,
+            isPlaying,
+            currentPosition,
+            duration,
+            audioPlayerManager.getMediaSessionToken(),
+            openIntent,
+            playPauseIntent,
+            stopIntent,
+            replayIntent
+        )
     }
 
     private fun updateNotification(title: String, isPlaying: Boolean) {
@@ -92,6 +130,8 @@ class PlaybackService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
+            ACTION_PLAY_AUDIO -> handlePlayAudio(intent)
+            ACTION_REPLAY -> handleReplayAudio(intent)
             ACTION_TOGGLE -> togglePlayPause("Voice Memo")
             ACTION_STOP -> stop()
         }
@@ -107,6 +147,8 @@ class PlaybackService : Service() {
 
     companion object {
         const val NOTIFICATION_ID = 1001
+        const val ACTION_PLAY_AUDIO = "com.vocalize.app.ACTION_PLAY_AUDIO"
+        const val ACTION_REPLAY = "com.vocalize.app.ACTION_REPLAY_AUDIO"
         const val ACTION_TOGGLE = "com.vocalize.app.TOGGLE"
         const val ACTION_STOP = "com.vocalize.app.STOP"
     }

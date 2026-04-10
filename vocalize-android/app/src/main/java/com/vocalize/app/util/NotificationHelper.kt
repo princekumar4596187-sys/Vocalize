@@ -10,6 +10,7 @@ import androidx.core.app.NotificationCompat
 import com.vocalize.app.MainActivity
 import com.vocalize.app.R
 import com.vocalize.app.VocalizeApplication
+import com.vocalize.app.service.PlaybackService
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -32,6 +33,40 @@ class NotificationHelper @Inject constructor(
             context, notifId, openIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+
+        val playIntent = Intent(context, PlaybackService::class.java).apply {
+            action = Constants.ACTION_PLAY_AUDIO
+            putExtra(Constants.EXTRA_MEMO_ID, memoId)
+            putExtra(Constants.EXTRA_MEMO_TITLE, memoTitle)
+        }
+        val playPending = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            PendingIntent.getForegroundService(
+                context, notifId + 4, playIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+        } else {
+            PendingIntent.getService(
+                context, notifId + 4, playIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+        }
+
+        val replayIntent = Intent(context, PlaybackService::class.java).apply {
+            action = Constants.ACTION_REPLAY_AUDIO
+            putExtra(Constants.EXTRA_MEMO_ID, memoId)
+            putExtra(Constants.EXTRA_MEMO_TITLE, memoTitle)
+        }
+        val replayPending = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            PendingIntent.getForegroundService(
+                context, notifId + 5, replayIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+        } else {
+            PendingIntent.getService(
+                context, notifId + 5, replayIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+        }
 
         val snoozeIntent = Intent(context, ReminderBroadcastReceiver::class.java).apply {
             action = Constants.ACTION_SNOOZE
@@ -66,11 +101,12 @@ class NotificationHelper @Inject constructor(
         val builder = NotificationCompat.Builder(context, VocalizeApplication.CHANNEL_REMINDERS)
             .setSmallIcon(R.drawable.ic_mic)
             .setContentTitle("Time to listen: $memoTitle")
-            .setContentText("Tap to play your voice memo")
+            .setContentText("Tap Play to listen without opening the app")
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(openPending)
-            .addAction(R.drawable.ic_play, "Play", openPending)
+            .addAction(R.drawable.ic_play, "Play", playPending)
+            .addAction(R.drawable.ic_mic, "Once more", replayPending)
             .addAction(R.drawable.ic_alarm, "Snooze", snoozePending)
             .addAction(R.drawable.ic_delete, "Dismiss", dismissPending)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
@@ -87,11 +123,15 @@ class NotificationHelper @Inject constructor(
     fun buildPlaybackNotification(
         memoTitle: String,
         isPlaying: Boolean,
+        currentPosition: Int,
+        duration: Int,
+        mediaSessionToken: android.media.session.MediaSession.Token?,
         pendingIntent: PendingIntent,
         playPauseIntent: PendingIntent,
-        stopIntent: PendingIntent
+        stopIntent: PendingIntent,
+        replayIntent: PendingIntent
     ): Notification {
-        return NotificationCompat.Builder(context, VocalizeApplication.CHANNEL_PLAYBACK)
+        val builder = NotificationCompat.Builder(context, VocalizeApplication.CHANNEL_PLAYBACK)
             .setSmallIcon(R.drawable.ic_mic)
             .setContentTitle(memoTitle)
             .setContentText(if (isPlaying) "Playing..." else "Paused")
@@ -101,10 +141,22 @@ class NotificationHelper @Inject constructor(
                 if (isPlaying) "Pause" else "Play",
                 playPauseIntent
             )
+            .addAction(R.drawable.ic_mic, "Once more", replayIntent)
             .addAction(R.drawable.ic_delete, "Stop", stopIntent)
             .setOngoing(isPlaying)
             .setOnlyAlertOnce(true)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+
+        if (duration > 0) {
+            builder.setProgress(duration, currentPosition.coerceIn(0, duration), false)
+        }
+
+        val mediaStyle = androidx.media.app.NotificationCompat.MediaStyle()
+            .setShowActionsInCompactView(0, 1, 2)
+            .setMediaSession(mediaSessionToken)
+
+        return builder
+            .setStyle(mediaStyle)
             .build()
     }
 
