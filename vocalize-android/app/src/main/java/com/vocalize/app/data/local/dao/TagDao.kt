@@ -25,6 +25,9 @@ interface TagDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun addTagToMemo(crossRef: MemoTagCrossRef)
 
+    @Query("SELECT * FROM memo_tag_cross_ref")
+    suspend fun getAllMemoTagCrossRefs(): List<MemoTagCrossRef>
+
     @Query("DELETE FROM memo_tag_cross_ref WHERE memoId = :memoId AND tagId = :tagId")
     suspend fun removeTagFromMemo(memoId: String, tagId: String)
 

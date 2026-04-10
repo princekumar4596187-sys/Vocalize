@@ -65,6 +65,7 @@ class MemoRepository @Inject constructor(
     suspend fun getTagById(id: String): TagEntity? = tagDao.getTagById(id)
     suspend fun insertTag(tag: TagEntity) = tagDao.insertTag(tag)
     suspend fun addTagToMemo(crossRef: MemoTagCrossRef) = tagDao.addTagToMemo(crossRef)
+    suspend fun getAllMemoTagCrossRefs(): List<MemoTagCrossRef> = tagDao.getAllMemoTagCrossRefs()
     suspend fun removeTagFromMemo(memoId: String, tagId: String) = tagDao.removeTagFromMemo(memoId, tagId)
     fun getMemoIdsByTag(tagId: String): Flow<List<String>> = tagDao.getMemoIdsByTag(tagId)
 
@@ -97,11 +98,14 @@ class MemoRepository @Inject constructor(
     suspend fun updateCategory(category: CategoryEntity) = categoryDao.updateCategory(category)
     suspend fun updateMemoCategory(id: String, categoryId: String?, now: Long) = memoDao.updateCategory(id, categoryId, now)
     suspend fun replaceMemoCategories(memoId: String, categoryIds: List<String>) = memoDao.replaceMemoCategories(memoId, categoryIds)
+    suspend fun addMemoCategoryCrossRef(crossRef: MemoCategoryCrossRef) = memoDao.insertMemoCategoryCrossRef(crossRef)
+    suspend fun getAllMemoCategoryCrossRefs(): List<MemoCategoryCrossRef> = memoDao.getAllMemoCategoryCrossRefs()
     fun getCategoriesForMemo(memoId: String) = memoDao.getCategoriesForMemo(memoId)
     suspend fun deleteCategory(category: CategoryEntity) = categoryDao.deleteCategory(category)
 
     // ─── Playlists ───────────────────────────────────────────
     fun getAllPlaylists(): Flow<List<PlaylistEntity>> = playlistDao.getAllPlaylists()
+    suspend fun getAllPlaylistMemoCrossRefs(): List<PlaylistMemoCrossRef> = playlistDao.getAllPlaylistMemoCrossRefs()
     suspend fun getPlaylistById(id: String): PlaylistEntity? = playlistDao.getPlaylistById(id)
     suspend fun insertPlaylist(playlist: PlaylistEntity) = playlistDao.insertPlaylist(playlist)
     suspend fun updatePlaylist(playlist: PlaylistEntity) = playlistDao.updatePlaylist(playlist)

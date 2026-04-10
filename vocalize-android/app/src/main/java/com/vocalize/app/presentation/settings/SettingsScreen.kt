@@ -40,11 +40,26 @@ fun SettingsScreen(
     var showClearCacheDialog by remember { mutableStateOf(false) }
     var showDeleteAllDialog by remember { mutableStateOf(false) }
     var showDigestHourDialog by remember { mutableStateOf(false) }
+    var showExportConfirmDialog by remember { mutableStateOf(false) }
+    var exportFolderUri by remember { mutableStateOf<Uri?>(null) }
     var allPermissionsGranted by remember { mutableStateOf(PermissionsHelper.areAllRequiredPermissionsGranted(context)) }
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { result ->
         allPermissionsGranted = result.values.all { it }
+    }
+    val folderLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree()
+    ) { uri ->
+        if (uri != null) {
+            exportFolderUri = uri
+            showExportConfirmDialog = true
+        }
+    }
+    val backupFileLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        uri?.let { viewModel.performImportBackup(it, context) }
     }
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -228,6 +243,14 @@ fun SettingsScreen(
                     else "Allow microphone, notifications, and audio permissions",
                     onClick = { permissionLauncher.launch(PermissionsHelper.getRequiredPermissions()) }
                 )
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                SettingsActionRow(
+                    icon = Icons.Default.Storage,
+                    iconTint = VocalizeAccentBlue,
+                    title = "Grant storage permissions",
+                    subtitle = "Allow backup export/import and storage access",
+                    onClick = { permissionLauncher.launch(PermissionsHelper.getRequiredPermissions()) }
+                )
             }
 
             // ── Data Management ──────────────────────────────────────────
@@ -240,6 +263,27 @@ fun SettingsScreen(
                     title = "Delete all data",
                     subtitle = "Permanently removes all memos and settings",
                     onClick = { showDeleteAllDialog = true }
+                )
+            }
+
+            // ── Backup / Export ──────────────────────────────────────────
+            SettingsSectionHeader("Backup", Icons.Default.FolderOpen)
+
+            SettingsCard {
+                SettingsActionRow(
+                    icon = Icons.Default.UploadFile,
+                    iconTint = VocalizeGreen,
+                    title = "Export special .voc backup",
+                    subtitle = "Choose a folder and create a full app backup",
+                    onClick = { folderLauncher.launch(null) }
+                )
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                SettingsActionRow(
+                    icon = Icons.Default.FileOpen,
+                    iconTint = VocalizeAccentBlue,
+                    title = "Import special .voc backup",
+                    subtitle = "Select a .voc file to restore all app content",
+                    onClick = { backupFileLauncher.launch(arrayOf("*/*")) }
                 )
             }
 
@@ -288,6 +332,36 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(80.dp))
         }
+    }
+
+    if (showExportConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showExportConfirmDialog = false },
+            title = { Text("Create .voc backup") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Create a full backup file with audio, notes, reminders, categories, tags, and playlists.")
+                    Text(
+                        text = exportFolderUri?.path ?: "Selected folder",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
+            confirmButton = {
+                Button(onClick = {
+                    exportFolderUri?.let {
+                        viewModel.performExportBackup(it, context)
+                    }
+                    showExportConfirmDialog = false
+                }) {
+                    Text("Create")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showExportConfirmDialog = false }) { Text("Cancel") }
+            }
+        )
     }
 
     // Snooze dialog

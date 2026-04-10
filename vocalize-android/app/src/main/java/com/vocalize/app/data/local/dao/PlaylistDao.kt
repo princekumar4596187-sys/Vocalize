@@ -26,6 +26,9 @@ interface PlaylistDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun addMemoToPlaylist(crossRef: PlaylistMemoCrossRef)
 
+    @Query("SELECT * FROM playlist_memo_cross_ref")
+    suspend fun getAllPlaylistMemoCrossRefs(): List<PlaylistMemoCrossRef>
+
     @Delete
     suspend fun removeMemoFromPlaylist(crossRef: PlaylistMemoCrossRef)
 

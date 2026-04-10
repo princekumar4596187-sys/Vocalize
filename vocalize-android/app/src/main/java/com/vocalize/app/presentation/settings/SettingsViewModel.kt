@@ -8,18 +8,34 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.lifecycle.ViewModel
 import com.vocalize.app.dataStore
+import android.net.Uri
+import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.viewModelScope
+import com.google.gson.Gson
+import com.vocalize.app.data.local.entity.CategoryEntity
+import com.vocalize.app.data.local.entity.MemoCategoryCrossRef
+import com.vocalize.app.data.local.entity.MemoTagCrossRef
+import com.vocalize.app.data.local.entity.PlaylistEntity
+import com.vocalize.app.data.local.entity.PlaylistMemoCrossRef
+import com.vocalize.app.data.local.entity.ReminderEntity
+import com.vocalize.app.data.local.entity.TagEntity
 import com.vocalize.app.data.repository.MemoRepository
 import com.vocalize.app.util.AudioFileManager
 import com.vocalize.app.util.BackupManager
 import com.vocalize.app.util.Constants
 import com.vocalize.app.util.DailyDigestWorker
+import com.vocalize.app.util.FileCompressor
 import com.vocalize.app.util.ReminderAlarmScheduler
 import com.vocalize.app.util.VoskTranscriber
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import javax.inject.Inject
 
@@ -43,11 +59,29 @@ data class SettingsUiState(
     val snackbarMessage: String? = null
 )
 
+data class VocBackupMetadata(
+    val version: Int = 1,
+    val createdAt: Long = System.currentTimeMillis()
+)
+
+data class VocBackupPayload(
+    val metadata: VocBackupMetadata = VocBackupMetadata(),
+    val categories: List<CategoryEntity> = emptyList(),
+    val tags: List<TagEntity> = emptyList(),
+    val playlists: List<PlaylistEntity> = emptyList(),
+    val memos: List<com.vocalize.app.data.local.entity.MemoEntity> = emptyList(),
+    val reminders: List<ReminderEntity> = emptyList(),
+    val memoCategoryCrossRefs: List<MemoCategoryCrossRef> = emptyList(),
+    val memoTagCrossRefs: List<MemoTagCrossRef> = emptyList(),
+    val playlistMemoCrossRefs: List<PlaylistMemoCrossRef> = emptyList()
+)
+
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val memoRepository: MemoRepository,
     private val audioFileManager: AudioFileManager,
+    private val fileCompressor: FileCompressor,
     private val backupManager: BackupManager,
     private val alarmScheduler: ReminderAlarmScheduler,
     private val voskTranscriber: VoskTranscriber
@@ -55,6 +89,7 @@ class SettingsViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
+    private val gson = Gson()
 
     init {
         loadPreferences()
@@ -138,6 +173,179 @@ class SettingsViewModel @Inject constructor(
     fun setAccentColor(colorHex: String) {
         viewModelScope.launch {
             context.dataStore.edit { it[stringPreferencesKey("accent_color")] = colorHex }
+        }
+    }
+
+    private suspend fun gatherBackupPayload(): VocBackupPayload = VocBackupPayload(
+        categories = memoRepository.getAllCategories().first(),
+        tags = memoRepository.getAllTags().first(),
+        playlists = memoRepository.getAllPlaylists().first(),
+        memos = memoRepository.getAllMemos().first(),
+        reminders = memoRepository.getAllReminders(),
+        memoCategoryCrossRefs = memoRepository.getAllMemoCategoryCrossRefs(),
+        memoTagCrossRefs = memoRepository.getAllMemoTagCrossRefs(),
+        playlistMemoCrossRefs = memoRepository.getAllPlaylistMemoCrossRefs()
+    )
+
+    private fun createBackupFileName(): String {
+        val timestamp = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
+        return "vocalize-backup-$timestamp.voc"
+    }
+
+    private suspend fun createBackupZip(tempDir: File, payload: VocBackupPayload): File = withContext(Dispatchers.IO) {
+        tempDir.deleteRecursively()
+        tempDir.mkdirs()
+
+        val metadataFile = File(tempDir, "backup.json")
+        metadataFile.writeText(gson.toJson(payload))
+
+        val audioDir = File(tempDir, "audio").apply { mkdirs() }
+        val recordingsDir = File(context.filesDir, Constants.RECORDINGS_DIR)
+        recordingsDir.listFiles()?.filter { it.isFile }?.forEach { file ->
+            file.copyTo(File(audioDir, file.name), overwrite = true)
+        }
+
+        val archiveFile = File(context.cacheDir, "vocalize_backup_${System.currentTimeMillis()}.zip")
+        if (archiveFile.exists()) archiveFile.delete()
+        if (!fileCompressor.zipDirectory(tempDir, archiveFile)) {
+            throw IllegalStateException("Failed to create backup archive")
+        }
+        archiveFile
+    }
+
+    private suspend fun writeArchiveToFolder(folderUri: Uri, archiveFile: File, context: Context): Boolean = withContext(Dispatchers.IO) {
+        val folderDocument = DocumentFile.fromTreeUri(context, folderUri)
+            ?: return@withContext false
+        val fileName = createBackupFileName()
+        val backupDocument = folderDocument.createFile("application/octet-stream", fileName)
+            ?: return@withContext false
+
+        context.contentResolver.openOutputStream(backupDocument.uri)?.use { outputStream ->
+            archiveFile.inputStream().use { inputStream ->
+                inputStream.copyTo(outputStream)
+            }
+        } ?: return@withContext false
+
+        true
+    }
+
+    fun performExportBackup(folderUri: Uri, context: Context) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isBackingUp = true, backupStatusMessage = "Preparing .voc backup...") }
+            val tempDir = File(context.cacheDir, "voc_backup_temp_${System.currentTimeMillis()}")
+            val zipFile = try {
+                val payload = gatherBackupPayload()
+                createBackupZip(tempDir, payload)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                null
+            }
+
+            val success = if (zipFile != null) {
+                try {
+                    writeArchiveToFolder(folderUri, zipFile, context)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    false
+                }
+            } else {
+                false
+            }
+
+            tempDir.deleteRecursively()
+            zipFile?.delete()
+
+            val now = System.currentTimeMillis()
+            if (success) {
+                context.dataStore.edit { it[longPreferencesKey(Constants.PREFS_LAST_BACKUP)] = now }
+                _uiState.update { it.copy(isBackingUp = false, backupStatusMessage = "Backup created successfully.", lastBackupTime = now) }
+                showSnackbar("Backup saved as .voc file")
+            } else {
+                _uiState.update { it.copy(isBackingUp = false, backupStatusMessage = "Failed to create backup.") }
+                showSnackbar("Backup export failed")
+            }
+        }
+    }
+
+    private suspend fun importBackupFromZip(zipFile: File): Boolean = withContext(Dispatchers.IO) {
+        val tempDir = File(context.cacheDir, "voc_import_temp_${System.currentTimeMillis()}")
+        tempDir.deleteRecursively()
+        tempDir.mkdirs()
+
+        val success = fileCompressor.unzip(zipFile, tempDir)
+        if (!success) return@withContext false
+
+        val metadataFile = File(tempDir, "backup.json")
+        if (!metadataFile.exists()) return@withContext false
+
+        val payload = gson.fromJson(metadataFile.readText(), VocBackupPayload::class.java)
+        val audioArchiveDir = File(tempDir, "audio")
+        val audioMap = audioArchiveDir.listFiles()?.associateBy { it.name } ?: emptyMap()
+
+        val restoredAudioPaths = mutableMapOf<String, String>()
+        audioMap.forEach { (name, file) ->
+            file.inputStream().use { stream ->
+                audioFileManager.importAudioFile(stream, name)?.let { restoredPath ->
+                    restoredAudioPaths[name] = restoredPath
+                }
+            }
+        }
+
+        payload.categories.forEach { memoRepository.insertCategory(it) }
+        payload.tags.forEach { memoRepository.insertTag(it) }
+        payload.playlists.forEach { memoRepository.insertPlaylist(it) }
+
+        payload.memos.forEach { memo ->
+            val audioName = File(memo.filePath).name
+            val updatedMemo = if (restoredAudioPaths.containsKey(audioName)) {
+                memo.copy(filePath = restoredAudioPaths[audioName] ?: memo.filePath)
+            } else memo
+            memoRepository.insertMemo(updatedMemo)
+        }
+
+        payload.reminders.forEach { memoRepository.insertReminder(it) }
+        payload.memoCategoryCrossRefs.forEach { memoRepository.addMemoCategoryCrossRef(it) }
+        payload.memoTagCrossRefs.forEach { memoRepository.addTagToMemo(it) }
+        payload.playlistMemoCrossRefs.forEach { memoRepository.addMemoToPlaylist(it) }
+
+        payload.memos.filter { it.hasReminder && it.reminderTime != null && it.reminderTime > System.currentTimeMillis() }
+            .forEach { memo ->
+                alarmScheduler.scheduleReminder(memo)
+            }
+
+        tempDir.deleteRecursively()
+        true
+    }
+
+    fun performImportBackup(backupUri: Uri, context: Context) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isBackingUp = true, backupStatusMessage = "Importing .voc backup...") }
+            val tempZip = File(context.cacheDir, "vocalize_import_${System.currentTimeMillis()}.zip")
+            val success = try {
+                context.contentResolver.openInputStream(backupUri)?.use { input ->
+                    File(context.cacheDir, tempZip.name).outputStream().use { output ->
+                        input.copyTo(output)
+                    }
+                } ?: return@launch run {
+                    _uiState.update { it.copy(isBackingUp = false, backupStatusMessage = "Unable to read backup file.") }
+                    showSnackbar("Backup import failed")
+                    return@launch
+                }
+                importBackupFromZip(tempZip)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                false
+            }
+
+            tempZip.delete()
+            if (success) {
+                computeStorage()
+                _uiState.update { it.copy(isBackingUp = false, backupStatusMessage = "Backup imported successfully.") }
+                showSnackbar("Backup restored from .voc file")
+            } else {
+                _uiState.update { it.copy(isBackingUp = false, backupStatusMessage = "Backup import failed.") }
+                showSnackbar("Backup import failed")
+            }
         }
     }
 

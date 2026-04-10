@@ -33,6 +33,9 @@ interface MemoDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMemoCategoryCrossRef(crossRef: MemoCategoryCrossRef)
 
+    @Query("SELECT * FROM memo_category_cross_ref")
+    suspend fun getAllMemoCategoryCrossRefs(): List<MemoCategoryCrossRef>
+
     @Query("DELETE FROM memo_category_cross_ref WHERE memoId = :memoId")
     suspend fun deleteCategoriesForMemo(memoId: String)
 
