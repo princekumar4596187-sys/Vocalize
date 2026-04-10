@@ -62,16 +62,18 @@ class HomeViewModel @Inject constructor(
                 memoRepository.getAllCategories()
             ) { recent, all, pinned, playlists, categories ->
                 val filter = _uiState.value.selectedCategoryFilter
-                val filtered = if (filter != null) all.filter { it.categoryId == filter } else all
+                val filteredRecent = if (filter != null) recent.filter { it.categoryId == filter } else recent
+                val filteredAll = if (filter != null) all.filter { it.categoryId == filter } else all
+                val filteredPinned = if (filter != null) pinned.filter { it.categoryId == filter } else pinned
                 _uiState.value.copy(
-                    recentMemos = recent,
-                    allMemos = filtered,
-                    pinnedMemos = pinned,
+                    recentMemos = filteredRecent,
+                    allMemos = filteredAll,
+                    pinnedMemos = filteredPinned,
                     playlists = playlists,
                     categories = categories,
                     isLoading = false,
-                    totalMemos = all.size,
-                    totalDurationMs = all.sumOf { it.duration }
+                    totalMemos = filteredAll.size,
+                    totalDurationMs = filteredAll.sumOf { it.duration }
                 )
             }.collect { _uiState.value = it }
         }
