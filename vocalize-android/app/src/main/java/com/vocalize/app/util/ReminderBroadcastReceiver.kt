@@ -5,8 +5,11 @@ import android.content.Context
 import android.content.Intent
 import com.vocalize.app.data.repository.MemoRepository
 import dagger.hilt.android.AndroidEntryPoint
+import androidx.datastore.preferences.core.stringPreferencesKey
+import com.vocalize.app.dataStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -33,9 +36,10 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
                 }
             }
             Constants.ACTION_SNOOZE -> {
-                val snoozeTime = System.currentTimeMillis() + Constants.SNOOZE_DURATION_MS
                 CoroutineScope(Dispatchers.IO).launch {
                     val memo = memoRepository.getMemoById(memoId) ?: return@launch
+                    val snoozeMinutes = context.dataStore.data.first()[stringPreferencesKey(Constants.PREFS_DEFAULT_SNOOZE)]?.toIntOrNull() ?: 10
+                    val snoozeTime = System.currentTimeMillis() + snoozeMinutes * 60 * 1000L
                     alarmScheduler.scheduleReminder(memo.copy(reminderTime = snoozeTime))
                 }
                 notificationHelper.cancelNotification(memoId)

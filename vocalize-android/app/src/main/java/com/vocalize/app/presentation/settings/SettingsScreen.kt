@@ -16,11 +16,14 @@ import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.vocalize.app.presentation.theme.*
+import com.vocalize.app.util.PermissionsHelper
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -37,6 +40,12 @@ fun SettingsScreen(
     var showClearCacheDialog by remember { mutableStateOf(false) }
     var showDeleteAllDialog by remember { mutableStateOf(false) }
     var showDigestHourDialog by remember { mutableStateOf(false) }
+    var allPermissionsGranted by remember { mutableStateOf(PermissionsHelper.areAllRequiredPermissionsGranted(context)) }
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { result ->
+        allPermissionsGranted = result.values.all { it }
+    }
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(uiState.snackbarMessage) {
@@ -207,6 +216,20 @@ fun SettingsScreen(
                 )
             }
 
+            // ── Permissions ──────────────────────────────────────────
+            SettingsSectionHeader("Permissions", Icons.Default.PrivacyTip)
+
+            SettingsCard {
+                SettingsActionRow(
+                    icon = Icons.Default.PrivacyTip,
+                    iconTint = VocalizeAccentBlue,
+                    title = "Grant app permissions",
+                    subtitle = if (allPermissionsGranted) "Microphone, notifications, and media permissions granted"
+                    else "Allow microphone, notifications, and audio permissions",
+                    onClick = { permissionLauncher.launch(PermissionsHelper.getRequiredPermissions()) }
+                )
+            }
+
             // ── Data Management ──────────────────────────────────────────
             SettingsSectionHeader("Data Management", Icons.Default.ManageAccounts)
 
@@ -270,6 +293,11 @@ fun SettingsScreen(
     // Snooze dialog
     if (showSnoozeDialog) {
         var tempSnooze by remember { mutableIntStateOf(uiState.defaultSnoozeMinutes) }
+        var customSnooze by remember { mutableStateOf(uiState.defaultSnoozeMinutes.toString()) }
+        var customSelected by remember { mutableStateOf(false) }
+        val customMinutes = customSnooze.toIntOrNull()
+        val saveEnabled = !customSelected || (customMinutes != null && customMinutes > 0)
+
         AlertDialog(
             onDismissRequest = { showSnoozeDialog = false },
             title = { Text("Default Snooze") },
@@ -280,19 +308,65 @@ fun SettingsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(10.dp))
-                                .clickable { tempSnooze = min }
+                                .clickable {
+                                    customSelected = false
+                                    tempSnooze = min
+                                }
                                 .padding(horizontal = 8.dp, vertical = 10.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            RadioButton(selected = tempSnooze == min, onClick = { tempSnooze = min })
+                            RadioButton(selected = !customSelected && tempSnooze == min, onClick = {
+                                customSelected = false
+                                tempSnooze = min
+                            })
                             Spacer(Modifier.width(8.dp))
                             Text("$min minutes")
                         }
                     }
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .clickable {
+                                customSelected = true
+                                customMinutes?.let { tempSnooze = it }
+                            }
+                            .padding(horizontal = 8.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(selected = customSelected, onClick = { customSelected = true })
+                        Spacer(Modifier.width(8.dp))
+                        Text("Custom duration", modifier = Modifier.weight(1f))
+                        Spacer(Modifier.width(8.dp))
+                        OutlinedTextField(
+                            value = customSnooze,
+                            onValueChange = { value ->
+                                customSnooze = value.filter { it.isDigit() }
+                                customSelected = true
+                                value.toIntOrNull()?.let { tempSnooze = it }
+                            },
+                            modifier = Modifier.width(100.dp),
+                            singleLine = true,
+                            label = { Text("Minutes")
+                            },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = VocalizeRed,
+                                focusedLabelColor = VocalizeRed
+                            )
+                        )
+                    }
                 }
             },
             confirmButton = {
-                Button(onClick = { viewModel.setDefaultSnooze(tempSnooze); showSnoozeDialog = false }) { Text("Save") }
+                Button(
+                    onClick = {
+                        val selected = if (customSelected) customMinutes ?: tempSnooze else tempSnooze
+                        viewModel.setDefaultSnooze(selected)
+                        showSnoozeDialog = false
+                    },
+                    enabled = saveEnabled
+                ) { Text("Save") }
             },
             dismissButton = {
                 TextButton(onClick = { showSnoozeDialog = false }) { Text("Cancel") }

@@ -47,6 +47,11 @@ object PermissionsHelper {
     fun allCorePermissionsGranted(context: Context): Boolean =
         hasRecordAudioPermission(context) && hasPostNotificationsPermission(context)
 
+    fun areAllRequiredPermissionsGranted(context: Context): Boolean =
+        getRequiredPermissions().all { permission ->
+            ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+        }
+
     fun getRequiredPermissions(): Array<String> {
         val perms = mutableListOf(Manifest.permission.RECORD_AUDIO)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
