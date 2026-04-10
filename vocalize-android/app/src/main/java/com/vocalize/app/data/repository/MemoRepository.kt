@@ -6,6 +6,7 @@ import com.vocalize.app.data.local.dao.PlaylistDao
 import com.vocalize.app.data.local.dao.ReminderDao
 import com.vocalize.app.data.local.dao.TagDao
 import com.vocalize.app.data.local.entity.CategoryEntity
+import com.vocalize.app.data.local.entity.MemoCategoryCrossRef
 import com.vocalize.app.data.local.entity.MemoEntity
 import com.vocalize.app.data.local.entity.PlaylistEntity
 import com.vocalize.app.data.local.entity.PlaylistMemoCrossRef
