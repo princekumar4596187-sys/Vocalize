@@ -108,4 +108,7 @@ interface MemoDao {
 
     @Query("DELETE FROM memos")
     suspend fun deleteAllMemos()
+
+    @Query("SELECT * FROM memos ORDER BY dateCreated DESC LIMIT :limit")
+    fun getRecentMemosSync(limit: Int): List<MemoEntity>
 }

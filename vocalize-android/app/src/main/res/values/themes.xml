@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Base theme – window background prevents white flash -->
+    <style name="Theme.Vocalize" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/gray_100</item>
+        <item name="android:windowAnimationStyle">@null</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:enforceNavigationBarContrast">false</item>
+        <item name="android:enforceStatusBarContrast">false</item>
+    </style>
+
+    <!-- Splash screen theme using core-splashscreen library -->
+    <style name="Theme.Vocalize.SplashScreen" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/gray_900</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_mic_bg</item>
+        <item name="windowSplashScreenAnimationDuration">300</item>
+        <item name="postSplashScreenTheme">@style/Theme.Vocalize</item>
+    </style>
+
+</resources>

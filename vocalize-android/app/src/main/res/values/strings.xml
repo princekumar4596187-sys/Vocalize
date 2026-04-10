@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Vocalize</string>
+    <string name="app_description">Your smart voice memo companion</string>
+
+    <!-- Navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_calendar">Calendar</string>
+    <string name="nav_search">Search</string>
+    <string name="nav_profile">Profile</string>
+
+    <!-- Tabs -->
+    <string name="tab_recents">Recents</string>
+    <string name="tab_all_memos">All Memos</string>
+    <string name="tab_playlists">Playlists</string>
+
+    <!-- Recorder -->
+    <string name="recorder_title">New Memo</string>
+    <string name="recorder_recording">Recording…</string>
+    <string name="recorder_preview">Preview</string>
+    <string name="recorder_cancel">Cancel</string>
+    <string name="recorder_save">Save Memo</string>
+    <string name="recorder_stop">Stop</string>
+    <string name="recorder_record">Record</string>
+    <string name="recorder_title_hint">Title (optional)</string>
+    <string name="recorder_note_hint">Add a note (optional)</string>
+    <string name="recorder_set_reminder">Set reminder after saving</string>
+    <string name="recorder_permission_rationale">Microphone access is needed to record voice memos.</string>
+
+    <!-- Memo card -->
+    <string name="memo_play">Play</string>
+    <string name="memo_pause">Pause</string>
+    <string name="memo_set_reminder">Set reminder</string>
+    <string name="memo_more_options">More options</string>
+    <string name="memo_edit_title">Edit title</string>
+    <string name="memo_delete">Delete</string>
+    <string name="memo_add_to_playlist">Add to playlist</string>
+    <string name="memo_pin">Pin to top</string>
+    <string name="memo_unpin">Unpin</string>
+    <string name="memo_share">Share</string>
+
+    <!-- Memo detail -->
+    <string name="detail_transcription">Transcription</string>
+    <string name="detail_text_note">Note</string>
+    <string name="detail_speed">Speed</string>
+    <string name="detail_reminder">Reminder</string>
+    <string name="detail_no_reminder">No reminder set</string>
+    <string name="detail_set_reminder">Set Reminder</string>
+    <string name="detail_add_to_playlist">Add to Playlist</string>
+
+    <!-- Reminder -->
+    <string name="reminder_daily">Daily</string>
+    <string name="reminder_weekly">Weekly</string>
+    <string name="reminder_custom">Custom Days</string>
+    <string name="reminder_none">One-time</string>
+    <string name="reminder_snooze_10">Snooze 10 min</string>
+    <string name="reminder_snooze_30">Snooze 30 min</string>
+    <string name="reminder_snooze_1h">Snooze 1 hour</string>
+    <string name="reminder_dismiss">Dismiss</string>
+    <string name="reminder_notification_title">Time to listen</string>
+    <string name="reminder_notification_channel">Voice Reminders</string>
+    <string name="reminder_notification_channel_desc">Scheduled voice memo reminder notifications</string>
+
+    <!-- Playback -->
+    <string name="playback_channel">Audio Playback</string>
+    <string name="playback_channel_desc">Notification shown during background audio playback</string>
+
+    <!-- Search -->
+    <string name="search_hint">Search memos…</string>
+    <string name="search_voice_input">Voice search</string>
+    <string name="search_no_results">No memos found</string>
+
+    <!-- Calendar -->
+    <string name="calendar_title">Calendar</string>
+    <string name="calendar_no_reminders">No reminders for this date</string>
+
+    <!-- Playlist -->
+    <string name="playlist_new">New Playlist</string>
+    <string name="playlist_name_hint">Playlist name</string>
+    <string name="playlist_create">Create</string>
+    <string name="playlist_play_all">Play All</string>
+    <string name="playlist_empty">No memos in this playlist</string>
+
+    <!-- Categories -->
+    <string name="category_work">Work</string>
+    <string name="category_personal">Personal</string>
+    <string name="category_ideas">Ideas</string>
+    <string name="category_shopping">Shopping</string>
+    <string name="category_health">Health</string>
+    <string name="category_manage">Manage Categories</string>
+    <string name="category_new">New Category</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_account">Account</string>
+    <string name="settings_sign_in">Sign in with Google</string>
+    <string name="settings_sign_out">Sign out</string>
+    <string name="settings_backup">Backup &amp; Restore</string>
+    <string name="settings_backup_now">Backup Now</string>
+    <string name="settings_restore">Restore</string>
+    <string name="settings_last_backup">Last backup</string>
+    <string name="settings_never">Never</string>
+    <string name="settings_voice_to_text">Voice to Text</string>
+    <string name="settings_offline_transcription">Offline Transcription (Vosk)</string>
+    <string name="settings_download_model">Download Language Model</string>
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_dark_mode">Dark Mode</string>
+    <string name="settings_dark_mode_system">Follow System</string>
+    <string name="settings_dark_mode_dark">Always Dark</string>
+    <string name="settings_dark_mode_light">Always Light</string>
+    <string name="settings_accent_color">Accent Color</string>
+    <string name="settings_reminder_defaults">Reminder Defaults</string>
+    <string name="settings_default_snooze">Default Snooze Duration</string>
+    <string name="settings_notification_sound">Notification Sound</string>
+    <string name="settings_storage">Storage</string>
+    <string name="settings_used_space">Used Space</string>
+    <string name="settings_clear_cache">Clear Cache</string>
+    <string name="settings_delete_all">Delete All Data</string>
+    <string name="settings_daily_digest">Daily Digest</string>
+    <string name="settings_daily_digest_time">Daily Digest Time</string>
+    <string name="settings_daily_digest_desc">Get a notification summarising today\'s reminders</string>
+    <string name="settings_categories">Categories</string>
+    <string name="settings_version">Version</string>
+    <string name="settings_about">About Vocalize</string>
+
+    <!-- Widget -->
+    <string name="widget_label">Vocalize</string>
+    <string name="widget_record">Record</string>
+    <string name="widget_no_memos">No recent memos</string>
+
+    <!-- Actions -->
+    <string name="action_ok">OK</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_confirm">Confirm</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_save">Save</string>
+    <string name="action_edit">Edit</string>
+    <string name="action_share">Share</string>
+    <string name="action_import">Import audio</string>
+
+    <!-- Errors / States -->
+    <string name="error_recording_failed">Recording failed. Please try again.</string>
+    <string name="error_save_failed">Could not save memo.</string>
+    <string name="error_playback_failed">Could not play audio.</string>
+    <string name="error_backup_failed">Backup failed. Check your internet connection.</string>
+    <string name="error_restore_failed">Restore failed.</string>
+    <string name="state_empty_memos">No memos yet. Tap the mic to record your first memo!</string>
+    <string name="state_loading">Loading…</string>
+    <string name="state_backup_success">Backup successful</string>
+    <string name="state_restore_success">Restore successful. Restart the app to apply.</string>
+    <string name="state_transcribing">Transcribing in background…</string>
+    <string name="state_model_downloading">Downloading voice model (%1$d%%)</string>
+    <string name="state_model_ready">Voice model ready</string>
+
+    <!-- File provider -->
+    <string name="file_provider_authority" translatable="false">com.vocalize.app.provider</string>
+
+    <!-- Notification actions -->
+    <string name="notif_action_play">Play</string>
+    <string name="notif_action_snooze">Snooze</string>
+    <string name="notif_action_dismiss">Dismiss</string>
+    <string name="notif_daily_digest_title">Your reminders for today</string>
+    <string name="notif_daily_digest_text">You have %1$d reminder(s) scheduled for today</string>
+</resources>

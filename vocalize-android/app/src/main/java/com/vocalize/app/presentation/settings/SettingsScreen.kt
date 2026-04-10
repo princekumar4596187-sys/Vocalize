@@ -35,6 +35,7 @@ import java.util.*
 @Composable
 fun SettingsScreen(
     onNavigateBack: () -> Unit,
+    onNavigateToCategories: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -269,6 +270,19 @@ fun SettingsScreen(
                         )
                     }
                 }
+            }
+
+            // ── Categories ──────────────────────────────────────────
+            SettingsSectionHeader("Organisation", Icons.Default.Label)
+
+            SettingsCard {
+                SettingsActionRow(
+                    icon = Icons.Default.Label,
+                    iconTint = VocalizePurple,
+                    title = "Manage categories",
+                    subtitle = "Create, edit, and delete memo categories",
+                    onClick = onNavigateToCategories
+                )
             }
 
             // ── Data Management ──────────────────────────────────────────

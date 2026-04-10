@@ -14,6 +14,7 @@ import com.vocalize.app.presentation.search.SearchScreen
 import com.vocalize.app.presentation.settings.SettingsScreen
 import com.vocalize.app.presentation.splash.SplashScreen
 import com.vocalize.app.presentation.playlist.PlaylistScreen
+import com.vocalize.app.presentation.category.CategoryManageScreen
 
 sealed class Screen(val route: String) {
     object Splash : Screen("splash")
@@ -28,6 +29,7 @@ sealed class Screen(val route: String) {
     object Playlist : Screen("playlist/{playlistId}") {
         fun createRoute(playlistId: String) = "playlist/$playlistId"
     }
+    object CategoryManage : Screen("category_manage")
 }
 
 @Composable
@@ -105,7 +107,37 @@ fun NavGraph(onSplashComplete: () -> Unit) {
                 }
             )
         }
-        composable(Screen.MemoDetail.route) { backStackEntry ->
+        composable(
+            route = Screen.MemoDetail.route,
+            enterTransition = {
+                // Card-expand: zoom into screen from slightly smaller scale + fade in
+                scaleIn(
+                    initialScale = 0.88f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessMediumLow
+                    )
+                ) + fadeIn(animationSpec = tween(320))
+            },
+            exitTransition = {
+                scaleOut(targetScale = 0.92f, animationSpec = tween(250)) +
+                fadeOut(animationSpec = tween(200))
+            },
+            popEnterTransition = {
+                scaleIn(initialScale = 0.92f, animationSpec = tween(250)) +
+                fadeIn(animationSpec = tween(250))
+            },
+            popExitTransition = {
+                // Shrink back down to simulate card collapsing
+                scaleOut(
+                    targetScale = 0.88f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessMediumLow
+                    )
+                ) + fadeOut(animationSpec = tween(300))
+            }
+        ) { backStackEntry ->
             val memoId = backStackEntry.arguments?.getString("memoId") ?: return@composable
             MemoDetailScreen(
                 memoId = memoId,
@@ -127,7 +159,13 @@ fun NavGraph(onSplashComplete: () -> Unit) {
         }
         composable(Screen.Settings.route) {
             SettingsScreen(
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToCategories = { navController.navigate(Screen.CategoryManage.route) }
+            )
+        }
+        composable(Screen.CategoryManage.route) {
+            CategoryManageScreen(
+                onBack = { navController.popBackStack() }
             )
         }
         composable(Screen.Playlist.route) { backStackEntry ->

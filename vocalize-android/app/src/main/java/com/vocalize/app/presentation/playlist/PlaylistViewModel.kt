@@ -78,6 +78,8 @@ class PlaylistViewModel @Inject constructor(
         if (memos.isEmpty()) return
         audioPlayerManager.prepareAndPlay(memos[0].filePath, memos[0].id)
         _uiState.update { it.copy(currentPlaybackIndex = 0) }
+        // Auto-advance to next track with crossfade when current track completes
+        audioPlayerManager.onTrackCompleted = { playNext() }
     }
 
     fun togglePlayPause() {
@@ -89,8 +91,12 @@ class PlaylistViewModel @Inject constructor(
         val nextIdx = state.currentPlaybackIndex + 1
         if (nextIdx < state.memos.size) {
             val memo = state.memos[nextIdx]
-            audioPlayerManager.prepareAndPlay(memo.filePath, memo.id)
+            // Use crossfade for smooth transition between playlist items
+            audioPlayerManager.prepareAndPlayWithCrossfade(memo.filePath, memo.id)
             _uiState.update { it.copy(currentPlaybackIndex = nextIdx) }
+        } else {
+            // End of playlist — stop
+            audioPlayerManager.onTrackCompleted = null
         }
     }
 
@@ -99,7 +105,7 @@ class PlaylistViewModel @Inject constructor(
         val prevIdx = state.currentPlaybackIndex - 1
         if (prevIdx >= 0) {
             val memo = state.memos[prevIdx]
-            audioPlayerManager.prepareAndPlay(memo.filePath, memo.id)
+            audioPlayerManager.prepareAndPlayWithCrossfade(memo.filePath, memo.id)
             _uiState.update { it.copy(currentPlaybackIndex = prevIdx) }
         }
     }

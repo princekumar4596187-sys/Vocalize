@@ -5,41 +5,100 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/widget_bg"
-    android:orientation="horizontal"
-    android:gravity="center_vertical"
+    android:orientation="vertical"
     android:padding="12dp">
 
-    <ImageView
-        android:id="@+id/widget_record_button"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
-        android:background="@drawable/ic_mic_bg"
-        android:src="@drawable/ic_mic"
-        android:scaleType="center"
-        android:contentDescription="Record voice memo" />
-
+    <!-- Header row -->
     <LinearLayout
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:orientation="vertical"
-        android:layout_marginStart="10dp">
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
 
         <TextView
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
             android:text="Vocalize"
             android:textStyle="bold"
-            android:textSize="14sp"
-            android:textColor="#FFFFFFFF" />
+            android:textSize="16sp"
+            android:textColor="#FFFFFFFF"
+            android:fontFamily="sans-serif-medium" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Tap to record"
-            android:textSize="11sp"
-            android:textColor="#B3FFFFFF" />
+        <!-- Record FAB button -->
+        <ImageView
+            android:id="@+id/widget_record_button"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@drawable/ic_mic_bg"
+            android:src="@drawable/ic_mic"
+            android:scaleType="center"
+            android:contentDescription="@string/widget_record"
+            android:padding="6dp" />
 
     </LinearLayout>
+
+    <!-- Divider -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#33FFFFFF"
+        android:layout_marginBottom="6dp" />
+
+    <!-- Sort/filter row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="32dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/widget_sort_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Recent"
+            android:textSize="11sp"
+            android:textColor="#B3FFFFFF"
+            android:paddingEnd="4dp" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text=""
+            android:textSize="11sp"
+            android:textColor="#80FFFFFF" />
+
+        <TextView
+            android:id="@+id/widget_memo_count"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textSize="11sp"
+            android:textColor="#80FFFFFF" />
+
+    </LinearLayout>
+
+    <!-- Memo list -->
+    <ListView
+        android:id="@+id/widget_memo_list"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:divider="#1AFFFFFF"
+        android:dividerHeight="0.5dp"
+        android:scrollbars="none" />
+
+    <!-- Empty state -->
+    <TextView
+        android:id="@+id/widget_empty_text"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:text="@string/widget_no_memos"
+        android:gravity="center"
+        android:textSize="12sp"
+        android:textColor="#80FFFFFF"
+        android:visibility="gone" />
 
 </LinearLayout>

@@ -13,7 +13,9 @@ object Constants {
     const val ACTION_DISMISS = "com.vocalize.app.ACTION_DISMISS"
     const val EXTRA_MEMO_ID = "memo_id"
     const val EXTRA_MEMO_TITLE = "memo_title"
-    const val SNOOZE_DURATION_MS = 10 * 60 * 1000L // 10 minutes
+    const val EXTRA_ACTION_PLAY = "action_play"
+    const val EXTRA_FULL_SCREEN_REMINDER = "full_screen_reminder"
+    const val SNOOZE_DURATION_MS = 10 * 60 * 1000L // 10 minutes default
 
     // WorkManager tags
     const val TRANSCRIPTION_WORK_TAG = "transcription_work"

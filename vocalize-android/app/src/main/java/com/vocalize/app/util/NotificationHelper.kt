@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import androidx.core.app.NotificationCompat
 import com.vocalize.app.MainActivity
 import com.vocalize.app.R
@@ -25,6 +26,7 @@ class NotificationHelper @Inject constructor(
         val openIntent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             putExtra(Constants.EXTRA_MEMO_ID, memoId)
+            putExtra(Constants.EXTRA_ACTION_PLAY, true)
         }
         val openPending = PendingIntent.getActivity(
             context, notifId, openIntent,
@@ -50,7 +52,18 @@ class NotificationHelper @Inject constructor(
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val notification = NotificationCompat.Builder(context, VocalizeApplication.CHANNEL_REMINDERS)
+        // Full-screen intent: shown as a heads-up / full-screen card on Android 10+ lock screen
+        val fullScreenIntent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra(Constants.EXTRA_MEMO_ID, memoId)
+            putExtra(Constants.EXTRA_FULL_SCREEN_REMINDER, true)
+        }
+        val fullScreenPending = PendingIntent.getActivity(
+            context, notifId + 3, fullScreenIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val builder = NotificationCompat.Builder(context, VocalizeApplication.CHANNEL_REMINDERS)
             .setSmallIcon(R.drawable.ic_mic)
             .setContentTitle("Time to listen: $memoTitle")
             .setContentText("Tap to play your voice memo")
@@ -58,12 +71,17 @@ class NotificationHelper @Inject constructor(
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(openPending)
             .addAction(R.drawable.ic_play, "Play", openPending)
-            .addAction(R.drawable.ic_alarm, "Snooze 10 min", snoozePending)
+            .addAction(R.drawable.ic_alarm, "Snooze", snoozePending)
             .addAction(R.drawable.ic_close, "Dismiss", dismissPending)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
-            .build()
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
 
-        notificationManager.notify(notifId, notification)
+        // Full-screen intent for Android 10+ lock screen player card
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            builder.setFullScreenIntent(fullScreenPending, true)
+        }
+
+        notificationManager.notify(notifId, builder.build())
     }
 
     fun buildPlaybackNotification(
@@ -86,6 +104,7 @@ class NotificationHelper @Inject constructor(
             .addAction(R.drawable.ic_close, "Stop", stopIntent)
             .setOngoing(isPlaying)
             .setOnlyAlertOnce(true)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .build()
     }
 

@@ -24,4 +24,7 @@ interface CategoryDao {
 
     @Query("SELECT COUNT(*) FROM memos WHERE categoryId = :categoryId")
     suspend fun getMemoCountForCategory(categoryId: String): Int
+
+    @Query("SELECT * FROM categories ORDER BY name ASC")
+    fun getAllCategoriesSync(): List<CategoryEntity>
 }
