@@ -1,0 +1,489 @@
+package com.vocalize.app.presentation.home
+
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.*
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.*
+import androidx.compose.foundation.pager.*
+import androidx.compose.foundation.shape.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.material3.*
+import androidx.compose.material3.TabRowDefaults.SecondaryIndicator
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
+import androidx.compose.runtime.*
+import androidx.compose.ui.*
+import androidx.compose.ui.draw.*
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.*
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.vocalize.app.data.local.entity.MemoEntity
+import com.vocalize.app.data.local.entity.PlaylistEntity
+import com.vocalize.app.presentation.components.MemoCard
+import com.vocalize.app.presentation.components.PlaylistCard
+import com.vocalize.app.presentation.theme.*
+import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.*
+
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
+@Composable
+fun HomeScreen(
+    onNavigateToRecorder: () -> Unit,
+    onNavigateToMemoDetail: (String) -> Unit,
+    onNavigateToCalendar: () -> Unit,
+    onNavigateToSearch: () -> Unit,
+    onNavigateToSettings: () -> Unit,
+    onNavigateToPlaylist: (String) -> Unit,
+    viewModel: HomeViewModel = hiltViewModel()
+) {
+    val uiState by viewModel.uiState.collectAsState()
+    val pagerState = rememberPagerState { 3 }
+    val coroutineScope = rememberCoroutineScope()
+    val haptic = LocalHapticFeedback.current
+    var selectedBottomTab by remember { mutableIntStateOf(0) }
+    var showCreatePlaylistDialog by remember { mutableStateOf(false) }
+    var showCategoryFilter by remember { mutableStateOf(false) }
+
+    // FAB pulse animation
+    val infiniteTransition = rememberInfiniteTransition(label = "fab_pulse")
+    val fabScale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.08f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1200, easing = EaseInOutSine),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "fab_scale"
+    )
+    val fabGlow by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1200, easing = EaseInOutSine),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "fab_glow"
+    )
+
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        bottomBar = {
+            NavigationBar(
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.onSurface,
+                tonalElevation = 0.dp,
+                modifier = Modifier
+                    .drawBehind {
+                        drawLine(
+                            color = Color.White.copy(alpha = 0.08f),
+                            start = Offset(0f, 0f),
+                            end = Offset(size.width, 0f),
+                            strokeWidth = 1.dp.toPx()
+                        )
+                    }
+            ) {
+                listOf(
+                    Triple(Icons.Outlined.Home, Icons.Filled.Home, "Home"),
+                    Triple(Icons.Outlined.CalendarMonth, Icons.Filled.CalendarMonth, "Calendar"),
+                    Triple(Icons.Outlined.Search, Icons.Filled.Search, "Search"),
+                    Triple(Icons.Outlined.Person, Icons.Filled.Person, "Profile")
+                ).forEachIndexed { idx, (outlinedIcon, filledIcon, label) ->
+                    NavigationBarItem(
+                        selected = selectedBottomTab == idx,
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            selectedBottomTab = idx
+                            when (idx) {
+                                1 -> onNavigateToCalendar()
+                                2 -> onNavigateToSearch()
+                                3 -> onNavigateToSettings()
+                            }
+                        },
+                        icon = {
+                            Icon(
+                                imageVector = if (selectedBottomTab == idx) filledIcon else outlinedIcon,
+                                contentDescription = label
+                            )
+                        },
+                        label = {
+                            Text(
+                                label,
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = VocalizeRed,
+                            selectedTextColor = VocalizeRed,
+                            indicatorColor = VocalizeRed.copy(alpha = 0.12f)
+                        )
+                    )
+                }
+            }
+        },
+        floatingActionButton = {
+            Box(
+                modifier = Modifier
+                    .size(72.dp)
+                    .scale(fabScale),
+                contentAlignment = Alignment.Center
+            ) {
+                // Glow effect
+                Box(
+                    modifier = Modifier
+                        .size(72.dp)
+                        .alpha(fabGlow * 0.4f)
+                        .background(
+                            brush = Brush.radialGradient(
+                                colors = listOf(VocalizeRed, Color.Transparent)
+                            ),
+                            shape = CircleShape
+                        )
+                )
+                FloatingActionButton(
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onNavigateToRecorder()
+                    },
+                    containerColor = VocalizeRed,
+                    contentColor = Color.White,
+                    elevation = FloatingActionButtonDefaults.elevation(8.dp),
+                    shape = CircleShape,
+                    modifier = Modifier.size(64.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Mic,
+                        contentDescription = "Record",
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+            }
+        },
+        floatingActionButtonPosition = FabPosition.Center,
+        contentWindowInsets = WindowInsets.safeDrawing
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) {
+            // Top bar
+            TopAppBar(
+                title = {
+                    Column {
+                        Text(
+                            text = "Vocalize",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                        if (uiState.totalMemos > 0) {
+                            Text(
+                                text = "${uiState.totalMemos} memos",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { showCategoryFilter = !showCategoryFilter }) {
+                        Icon(
+                            Icons.Default.FilterList,
+                            contentDescription = "Filter",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    IconButton(onClick = onNavigateToSettings) {
+                        Icon(
+                            Icons.Default.AccountCircle,
+                            contentDescription = "Profile",
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(30.dp)
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                )
+            )
+
+            // Category filter chips
+            AnimatedVisibility(
+                visible = showCategoryFilter,
+                enter = slideInVertically() + fadeIn(),
+                exit = slideOutVertically() + fadeOut()
+            ) {
+                LazyRow(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    item {
+                        FilterChip(
+                            selected = uiState.selectedCategoryFilter == null,
+                            onClick = { viewModel.setCategoryFilter(null) },
+                            label = { Text("All") }
+                        )
+                    }
+                    items(uiState.categories) { cat ->
+                        FilterChip(
+                            selected = uiState.selectedCategoryFilter == cat.id,
+                            onClick = { viewModel.setCategoryFilter(cat.id) },
+                            label = { Text(cat.name) },
+                            leadingIcon = {
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .background(
+                                            Color(android.graphics.Color.parseColor(cat.colorHex)),
+                                            CircleShape
+                                        )
+                                )
+                            }
+                        )
+                    }
+                }
+            }
+
+            // Tabs
+            val tabs = listOf("Recents", "All Memos", "Playlists")
+            ScrollableTabRow(
+                selectedTabIndex = pagerState.currentPage,
+                containerColor = Color.Transparent,
+                contentColor = VocalizeRed,
+                edgePadding = 16.dp,
+                indicator = { tabPositions ->
+                    SecondaryIndicator(
+                        modifier = Modifier.tabIndicatorOffset(tabPositions[pagerState.currentPage]),
+                        height = 3.dp,
+                        color = VocalizeRed
+                    )
+                },
+                divider = {}
+            ) {
+                tabs.forEachIndexed { index, title ->
+                    Tab(
+                        selected = pagerState.currentPage == index,
+                        onClick = { coroutineScope.launch { pagerState.animateScrollToPage(index) } },
+                        text = {
+                            Text(
+                                title,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = if (pagerState.currentPage == index) FontWeight.Bold else FontWeight.Normal
+                            )
+                        },
+                        selectedContentColor = VocalizeRed,
+                        unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.fillMaxSize()
+            ) { page ->
+                when (page) {
+                    0 -> MemoList(
+                        memos = uiState.recentMemos,
+                        isLoading = uiState.isLoading,
+                        onMemoClick = onNavigateToMemoDetail,
+                        onDeleteMemo = { viewModel.deleteMemo(it) },
+                        onAddToPlaylist = { memoId ->
+                            if (uiState.playlists.isNotEmpty()) {
+                                viewModel.addMemoToPlaylist(memoId, uiState.playlists.first().id)
+                            }
+                        },
+                        categories = uiState.categories,
+                        emptyText = "No recent memos. Tap the mic to start recording!"
+                    )
+                    1 -> MemoList(
+                        memos = if (uiState.selectedCategoryFilter != null)
+                            uiState.allMemos.filter { it.categoryId == uiState.selectedCategoryFilter }
+                        else uiState.allMemos,
+                        isLoading = uiState.isLoading,
+                        onMemoClick = onNavigateToMemoDetail,
+                        onDeleteMemo = { viewModel.deleteMemo(it) },
+                        onAddToPlaylist = { memoId ->
+                            if (uiState.playlists.isNotEmpty()) {
+                                viewModel.addMemoToPlaylist(memoId, uiState.playlists.first().id)
+                            }
+                        },
+                        categories = uiState.categories,
+                        emptyText = "No memos found."
+                    )
+                    2 -> PlaylistList(
+                        playlists = uiState.playlists,
+                        onPlaylistClick = onNavigateToPlaylist,
+                        onDeletePlaylist = { viewModel.deletePlaylist(it) },
+                        onCreatePlaylist = { showCreatePlaylistDialog = true }
+                    )
+                }
+            }
+        }
+    }
+
+    // Create playlist dialog
+    if (showCreatePlaylistDialog) {
+        var playlistName by remember { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { showCreatePlaylistDialog = false },
+            title = { Text("New Playlist") },
+            text = {
+                OutlinedTextField(
+                    value = playlistName,
+                    onValueChange = { playlistName = it },
+                    label = { Text("Playlist name") },
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (playlistName.isNotBlank()) {
+                            viewModel.createPlaylist(playlistName)
+                            showCreatePlaylistDialog = false
+                        }
+                    }
+                ) { Text("Create") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCreatePlaylistDialog = false }) { Text("Cancel") }
+            }
+        )
+    }
+}
+
+@Composable
+private fun MemoList(
+    memos: List<MemoEntity>,
+    isLoading: Boolean,
+    onMemoClick: (String) -> Unit,
+    onDeleteMemo: (MemoEntity) -> Unit,
+    onAddToPlaylist: (String) -> Unit,
+    categories: List<com.vocalize.app.data.local.entity.CategoryEntity>,
+    emptyText: String
+) {
+    if (isLoading) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(color = VocalizeRed)
+        }
+        return
+    }
+
+    if (memos.isEmpty()) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(
+                    Icons.Default.MicOff,
+                    contentDescription = null,
+                    modifier = Modifier.size(64.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                )
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    emptyText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        return
+    }
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        itemsIndexed(memos, key = { _, m -> m.id }) { index, memo ->
+            val animDelay = (index * 60).coerceAtMost(600)
+            var visible by remember { mutableStateOf(false) }
+            LaunchedEffect(memo.id) {
+                kotlinx.coroutines.delay(animDelay.toLong())
+                visible = true
+            }
+            AnimatedVisibility(
+                visible = visible,
+                enter = slideInVertically(
+                    initialOffsetY = { it / 2 },
+                    animationSpec = spring(dampingRatio = 0.7f, stiffness = Spring.StiffnessMediumLow)
+                ) + fadeIn(tween(300))
+            ) {
+                MemoCard(
+                    memo = memo,
+                    category = categories.find { it.id == memo.categoryId },
+                    onClick = { onMemoClick(memo.id) },
+                    onDelete = { onDeleteMemo(memo) },
+                    onAddToPlaylist = { onAddToPlaylist(memo.id) }
+                )
+            }
+        }
+        item { Spacer(Modifier.height(80.dp)) }
+    }
+}
+
+@Composable
+private fun PlaylistList(
+    playlists: List<PlaylistEntity>,
+    onPlaylistClick: (String) -> Unit,
+    onDeletePlaylist: (PlaylistEntity) -> Unit,
+    onCreatePlaylist: () -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        item {
+            OutlinedButton(
+                onClick = onCreatePlaylist,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Create Playlist")
+            }
+        }
+
+        if (playlists.isEmpty()) {
+            item {
+                Box(
+                    modifier = Modifier.fillParentMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            Icons.Default.QueueMusic,
+                            contentDescription = null,
+                            modifier = Modifier.size(64.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        Text(
+                            "No playlists yet. Create one!",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        } else {
+            itemsIndexed(playlists, key = { _, p -> p.id }) { _, playlist ->
+                PlaylistCard(
+                    playlist = playlist,
+                    onClick = { onPlaylistClick(playlist.id) },
+                    onDelete = { onDeletePlaylist(playlist) }
+                )
+            }
+        }
+        item { Spacer(Modifier.height(80.dp)) }
+    }
+}

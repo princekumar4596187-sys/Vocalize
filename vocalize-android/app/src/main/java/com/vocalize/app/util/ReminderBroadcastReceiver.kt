@@ -1,0 +1,48 @@
+package com.vocalize.app.util
+
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import com.vocalize.app.data.repository.MemoRepository
+import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+@AndroidEntryPoint
+class ReminderBroadcastReceiver : BroadcastReceiver() {
+
+    @Inject lateinit var notificationHelper: NotificationHelper
+    @Inject lateinit var alarmScheduler: ReminderAlarmScheduler
+    @Inject lateinit var memoRepository: MemoRepository
+
+    override fun onReceive(context: Context, intent: Intent) {
+        val memoId = intent.getStringExtra(Constants.EXTRA_MEMO_ID) ?: return
+        val memoTitle = intent.getStringExtra(Constants.EXTRA_MEMO_TITLE) ?: "Voice Memo"
+
+        when (intent.action) {
+            Constants.ACTION_PLAY -> {
+                notificationHelper.showReminderNotification(memoId, memoTitle)
+                // Schedule next repeat if applicable
+                CoroutineScope(Dispatchers.IO).launch {
+                    val memo = memoRepository.getMemoById(memoId) ?: return@launch
+                    if (memo.repeatType != com.vocalize.app.data.local.entity.RepeatType.NONE) {
+                        alarmScheduler.scheduleNextRepeat(memo)
+                    }
+                }
+            }
+            Constants.ACTION_SNOOZE -> {
+                val snoozeTime = System.currentTimeMillis() + Constants.SNOOZE_DURATION_MS
+                CoroutineScope(Dispatchers.IO).launch {
+                    val memo = memoRepository.getMemoById(memoId) ?: return@launch
+                    alarmScheduler.scheduleReminder(memo.copy(reminderTime = snoozeTime))
+                }
+                notificationHelper.cancelNotification(memoId)
+            }
+            Constants.ACTION_DISMISS -> {
+                notificationHelper.cancelNotification(memoId)
+            }
+        }
+    }
+}
