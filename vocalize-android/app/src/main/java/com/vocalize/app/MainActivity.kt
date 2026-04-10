@@ -12,7 +12,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.datastore.preferences.core.booleanPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
+import com.vocalize.app.dataStore
 import com.vocalize.app.presentation.NavGraph
 import com.vocalize.app.presentation.theme.VocalizeTheme
 import com.vocalize.app.util.Constants
@@ -22,8 +22,6 @@ import kotlinx.coroutines.flow.map
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-
-    private val dataStore by preferencesDataStore(name = "vocalize_prefs")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,8 +44,8 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val isDarkMode by dataStore.data.map { prefs ->
-                prefs[booleanPreferencesKey(Constants.PREFS_DARK_MODE)] ?: true
-            }.collectAsState(initial = true)
+                prefs[booleanPreferencesKey(Constants.PREFS_DARK_MODE)] ?: false
+            }.collectAsState(initial = false)
 
             VocalizeTheme(darkTheme = isDarkMode) {
                 Surface(modifier = Modifier.fillMaxSize()) {

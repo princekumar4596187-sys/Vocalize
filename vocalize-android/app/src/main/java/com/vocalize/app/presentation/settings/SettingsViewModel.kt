@@ -6,8 +6,8 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.ViewModel
+import com.vocalize.app.dataStore
 import androidx.lifecycle.viewModelScope
 import com.vocalize.app.data.repository.MemoRepository
 import com.vocalize.app.util.AudioFileManager
@@ -22,8 +22,6 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.io.File
 import javax.inject.Inject
-
-private val Context.dataStore by preferencesDataStore(name = "vocalize_prefs")
 
 data class SettingsUiState(
     val isDarkMode: Boolean = true,
