@@ -1,12 +1,14 @@
 package com.vocalize.app.util
 
 import android.app.Application
+import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.Process
@@ -16,6 +18,7 @@ import com.vocalize.app.CrashNotificationReceiver
 import com.vocalize.app.CrashReportActivity
 import com.vocalize.app.VocalizeApplication
 import com.vocalize.app.R
+import java.io.File
 import java.io.PrintWriter
 import java.io.StringWriter
 
@@ -23,11 +26,13 @@ object CrashReporter {
     private const val TAG = "CrashReporter"
     private const val PREFS_NAME = "crash_reporter"
     private const val KEY_LAST_CRASH = "last_crash_log"
+    private const val CRASH_FILE_NAME = "crash_report.txt"
     private const val NOTIF_ID_CRASH = 99999
     private const val ACTION_COPY_CRASH = "com.vocalize.app.ACTION_COPY_CRASH"
     private const val ACTION_SHOW_CRASH = "com.vocalize.app.ACTION_SHOW_CRASH"
 
     fun init(application: Application) {
+        createCrashNotificationChannel(application)
         val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
 
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
@@ -76,10 +81,36 @@ object CrashReporter {
     }
 
     private fun saveCrash(context: Context, crashText: String) {
+        try {
+            getCrashLogFile(context).writeText(crashText)
+        } catch (error: Throwable) {
+            Log.e(TAG, "Failed to save crash file", error)
+        }
+
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .edit()
             .putString(KEY_LAST_CRASH, crashText)
-            .apply()
+            .commit()
+    }
+
+    private fun createCrashNotificationChannel(context: Context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val manager = context.getSystemService(NotificationManager::class.java)
+            val channel = NotificationChannel(
+                VocalizeApplication.CHANNEL_CRASH,
+                context.getString(R.string.crash_notification_title),
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = context.getString(R.string.crash_notification_text)
+                enableLights(true)
+                enableVibration(true)
+            }
+            manager.createNotificationChannel(channel)
+        }
+    }
+
+    private fun getCrashLogFile(context: Context): File {
+        return File(context.filesDir, CRASH_FILE_NAME)
     }
 
     private fun launchCrashActivity(context: Context, crashText: String) {
@@ -135,6 +166,10 @@ object CrashReporter {
         getSavedCrashLog(context)?.let { sendCrashNotification(context, it) }
     }
 
+    fun notifyCrash(context: Context, crashText: String) {
+        sendCrashNotification(context, crashText)
+    }
+
     fun copyCrashLog(context: Context, crashText: String?) {
         crashText ?: return
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -143,14 +178,19 @@ object CrashReporter {
     }
 
     fun getSavedCrashLog(context: Context): String? {
-        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .getString(KEY_LAST_CRASH, null)
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getString(KEY_LAST_CRASH, null)?.let { return it }
+
+        val file = getCrashLogFile(context)
+        return if (file.exists()) file.readText() else null
     }
 
     fun clearSavedCrashLog(context: Context) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .edit()
             .remove(KEY_LAST_CRASH)
-            .apply()
+            .commit()
+
+        getCrashLogFile(context).takeIf { it.exists() }?.delete()
     }
 }

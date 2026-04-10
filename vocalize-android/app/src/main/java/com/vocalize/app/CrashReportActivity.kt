@@ -35,7 +35,7 @@ class CrashReportActivity : ComponentActivity() {
         }
 
         findViewById<Button>(R.id.notifyCrashButton).setOnClickListener {
-            CrashReporter.notifyLastCrash(this)
+            CrashReporter.notifyCrash(this, crashLog)
             Toast.makeText(this, R.string.crash_report_notification_sent, Toast.LENGTH_SHORT).show()
         }
 
