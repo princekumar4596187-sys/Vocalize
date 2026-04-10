@@ -7,7 +7,9 @@ import com.vocalize.app.data.local.entity.CategoryEntity
 import com.vocalize.app.data.local.entity.MemoEntity
 import com.vocalize.app.data.local.entity.PlaylistEntity
 import com.vocalize.app.data.local.entity.PlaylistMemoCrossRef
+import com.vocalize.app.data.local.entity.ReminderEntity
 import com.vocalize.app.data.local.entity.RepeatType
+import com.vocalize.app.data.local.entity.TagEntity
 import com.vocalize.app.data.repository.MemoRepository
 import com.vocalize.app.util.AudioPlayerManager
 import com.vocalize.app.util.AudioPlaybackState
@@ -25,6 +27,9 @@ data class DetailUiState(
     val memo: MemoEntity? = null,
     val categories: List<CategoryEntity> = emptyList(),
     val playlists: List<PlaylistEntity> = emptyList(),
+    val tags: List<TagEntity> = emptyList(),
+    val memoTags: List<TagEntity> = emptyList(),
+    val reminders: List<ReminderEntity> = emptyList(),
     val playbackState: AudioPlaybackState = AudioPlaybackState(),
     val isLoading: Boolean = true,
     val isEditingTitle: Boolean = false,
@@ -32,8 +37,10 @@ data class DetailUiState(
     val isEditingNote: Boolean = false,
     val editedNote: String = "",
     val showReminderSheet: Boolean = false,
+    val editingReminderId: String? = null,
     val showPlaylistSheet: Boolean = false,
-    val showCategorySheet: Boolean = false
+    val showCategorySheet: Boolean = false,
+    val showTagSheet: Boolean = false
 )
 
 @HiltViewModel
@@ -62,12 +69,18 @@ class MemoDetailViewModel @Inject constructor(
             combine(
                 memoRepository.getMemoByIdFlow(memoId),
                 memoRepository.getAllCategories(),
-                memoRepository.getAllPlaylists()
-            ) { memo, categories, playlists ->
+                memoRepository.getAllPlaylists(),
+                memoRepository.getAllTags(),
+                memoRepository.getTagsForMemo(memoId),
+                memoRepository.getRemindersForMemo(memoId)
+            ) { memo, categories, playlists, tags, memoTags, reminders ->
                 DetailUiState(
                     memo = memo,
                     categories = categories,
                     playlists = playlists,
+                    tags = tags,
+                    memoTags = memoTags,
+                    reminders = reminders,
                     isLoading = false,
                     editedTitle = memo?.title ?: "",
                     editedNote = memo?.textNote ?: ""
@@ -78,7 +91,9 @@ class MemoDetailViewModel @Inject constructor(
                 isEditingNote = _uiState.value.isEditingNote,
                 showReminderSheet = _uiState.value.showReminderSheet,
                 showPlaylistSheet = _uiState.value.showPlaylistSheet,
-                showCategorySheet = _uiState.value.showCategorySheet
+                showCategorySheet = _uiState.value.showCategorySheet,
+                showTagSheet = _uiState.value.showTagSheet,
+                editingReminderId = _uiState.value.editingReminderId
             ) }
         }
     }
@@ -141,19 +156,74 @@ class MemoDetailViewModel @Inject constructor(
     }
     fun cancelEditNote() = _uiState.update { it.copy(isEditingNote = false) }
 
-    fun setReminder(reminderTime: Long, repeatType: RepeatType, customDays: String) {
-        viewModelScope.launch {
-            memoRepository.updateReminder(memoId, true, reminderTime, repeatType, customDays)
-            val updated = memoRepository.getMemoById(memoId) ?: return@launch
-            alarmScheduler.scheduleReminder(updated)
-            _uiState.update { it.copy(showReminderSheet = false) }
+    private suspend fun refreshMemoReminderFields() {
+        val reminders = memoRepository.getRemindersForMemo(memoId).first()
+        if (reminders.isEmpty()) {
+            memoRepository.updateReminder(memoId, false, null, RepeatType.NONE, "")
+        } else {
+            val nextReminder = reminders.minByOrNull { it.reminderTime }!!
+            memoRepository.updateReminder(memoId, true, nextReminder.reminderTime, nextReminder.repeatType, nextReminder.customDays)
         }
     }
 
-    fun clearReminder() {
+    fun setReminder(reminderTime: Long, repeatType: RepeatType, customDays: String, reminderId: String? = null) {
         viewModelScope.launch {
+            val id = reminderId ?: UUID.randomUUID().toString()
+            val reminder = ReminderEntity(
+                id = id,
+                memoId = memoId,
+                reminderTime = reminderTime,
+                repeatType = repeatType,
+                customDays = customDays
+            )
+            memoRepository.insertReminder(reminder)
+            refreshMemoReminderFields()
+            alarmScheduler.scheduleReminder(reminder, _uiState.value.memo?.title ?: "Voice Memo")
+            _uiState.update { it.copy(showReminderSheet = false, editingReminderId = null) }
+        }
+    }
+
+    fun deleteReminder(reminderId: String) {
+        viewModelScope.launch {
+            memoRepository.deleteReminderById(reminderId)
+            alarmScheduler.cancelReminder(reminderId)
+            refreshMemoReminderFields()
+        }
+    }
+
+    fun clearAllReminders() {
+        viewModelScope.launch {
+            val reminders = memoRepository.getRemindersForMemo(memoId).first()
+            reminders.forEach { alarmScheduler.cancelReminder(it.id) }
+            memoRepository.deleteRemindersByMemo(memoId)
             memoRepository.updateReminder(memoId, false, null, RepeatType.NONE, "")
-            alarmScheduler.cancelReminder(memoId)
+            _uiState.update { it.copy(showReminderSheet = false, editingReminderId = null) }
+        }
+    }
+
+    fun toggleTag(tagId: String) {
+        viewModelScope.launch {
+            val selectedIds = _uiState.value.memoTags.map { it.id }.toSet()
+            if (tagId in selectedIds) {
+                memoRepository.removeTagFromMemo(memoId, tagId)
+            } else {
+                memoRepository.addTagToMemo(com.vocalize.app.data.local.entity.MemoTagCrossRef(memoId, tagId))
+            }
+        }
+    }
+
+    fun createTag(name: String) {
+        viewModelScope.launch {
+            val normalized = name.trim()
+            if (normalized.isBlank()) return@launch
+            val existing = memoRepository.getAllTags().first().firstOrNull { it.name.equals(normalized, ignoreCase = true) }
+            val tag = existing ?: TagEntity(
+                id = UUID.randomUUID().toString(),
+                name = normalized,
+                colorHex = "#${Integer.toHexString((0xFF shl 24) or (Math.abs(normalized.hashCode()) and 0xFFFFFF)).substring(2)}"
+            )
+            memoRepository.insertTag(tag)
+            memoRepository.addTagToMemo(com.vocalize.app.data.local.entity.MemoTagCrossRef(memoId, tag.id))
         }
     }
 
@@ -164,10 +234,12 @@ class MemoDetailViewModel @Inject constructor(
         }
     }
 
-    fun showReminderSheet() = _uiState.update { it.copy(showReminderSheet = true) }
-    fun hideReminderSheet() = _uiState.update { it.copy(showReminderSheet = false) }
+    fun showReminderSheet(reminderId: String? = null) = _uiState.update { it.copy(showReminderSheet = true, editingReminderId = reminderId) }
+    fun hideReminderSheet() = _uiState.update { it.copy(showReminderSheet = false, editingReminderId = null) }
     fun showPlaylistSheet() = _uiState.update { it.copy(showPlaylistSheet = true) }
     fun hidePlaylistSheet() = _uiState.update { it.copy(showPlaylistSheet = false) }
+    fun showTagSheet() = _uiState.update { it.copy(showTagSheet = true) }
+    fun hideTagSheet() = _uiState.update { it.copy(showTagSheet = false) }
 
     fun showCategorySheet() = _uiState.update { it.copy(showCategorySheet = true) }
     fun hideCategorySheet() = _uiState.update { it.copy(showCategorySheet = false) }

@@ -6,6 +6,8 @@ import com.vocalize.app.data.local.AppDatabase
 import com.vocalize.app.data.local.dao.CategoryDao
 import com.vocalize.app.data.local.dao.MemoDao
 import com.vocalize.app.data.local.dao.PlaylistDao
+import com.vocalize.app.data.local.dao.TagDao
+import com.vocalize.app.data.local.dao.ReminderDao
 import com.vocalize.app.util.Constants
 import dagger.Module
 import dagger.Provides
@@ -38,4 +40,10 @@ object AppModule {
 
     @Provides
     fun providePlaylistDao(db: AppDatabase): PlaylistDao = db.playlistDao()
+
+    @Provides
+    fun provideTagDao(db: AppDatabase): TagDao = db.tagDao()
+
+    @Provides
+    fun provideReminderDao(db: AppDatabase): ReminderDao = db.reminderDao()
 }

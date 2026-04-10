@@ -103,6 +103,9 @@ interface MemoDao {
     @Query("SELECT * FROM memos WHERE id IN (SELECT memoId FROM playlist_memo_cross_ref WHERE playlistId = :playlistId ORDER BY position ASC)")
     fun getMemosByPlaylist(playlistId: String): Flow<List<MemoEntity>>
 
+    @Query("SELECT m.* FROM memos m INNER JOIN memo_tag_cross_ref mt ON m.id = mt.memoId WHERE mt.tagId = :tagId ORDER BY m.dateCreated DESC")
+    fun getMemosByTag(tagId: String): Flow<List<MemoEntity>>
+
     @Query("UPDATE memos SET isPinned = :pinned WHERE id = :id")
     suspend fun updatePinned(id: String, pinned: Boolean)
 

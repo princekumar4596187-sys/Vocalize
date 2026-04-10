@@ -3,10 +3,15 @@ package com.vocalize.app.data.repository
 import com.vocalize.app.data.local.dao.CategoryDao
 import com.vocalize.app.data.local.dao.MemoDao
 import com.vocalize.app.data.local.dao.PlaylistDao
+import com.vocalize.app.data.local.dao.ReminderDao
+import com.vocalize.app.data.local.dao.TagDao
 import com.vocalize.app.data.local.entity.CategoryEntity
 import com.vocalize.app.data.local.entity.MemoEntity
 import com.vocalize.app.data.local.entity.PlaylistEntity
 import com.vocalize.app.data.local.entity.PlaylistMemoCrossRef
+import com.vocalize.app.data.local.entity.ReminderEntity
+import com.vocalize.app.data.local.entity.TagEntity
+import com.vocalize.app.data.local.entity.MemoTagCrossRef
 import com.vocalize.app.data.local.entity.RepeatType
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
@@ -16,7 +21,9 @@ import javax.inject.Singleton
 class MemoRepository @Inject constructor(
     private val memoDao: MemoDao,
     private val categoryDao: CategoryDao,
-    private val playlistDao: PlaylistDao
+    private val playlistDao: PlaylistDao,
+    private val tagDao: TagDao,
+    private val reminderDao: ReminderDao
 ) {
     // ─── Memos ───────────────────────────────────────────
     fun getAllMemos(): Flow<List<MemoEntity>> = memoDao.getAllMemos()
@@ -36,6 +43,7 @@ class MemoRepository @Inject constructor(
         dateTo: Long?
     ): Flow<List<MemoEntity>> = memoDao.getFilteredMemos(categoryId, hasReminder, dateFrom, dateTo)
     fun getMemosByPlaylist(playlistId: String): Flow<List<MemoEntity>> = memoDao.getMemosByPlaylist(playlistId)
+    fun getMemosByTag(tagId: String): Flow<List<MemoEntity>> = memoDao.getMemosByTag(tagId)
 
     suspend fun insertMemo(memo: MemoEntity) = memoDao.insertMemo(memo)
     suspend fun updateMemo(memo: MemoEntity) = memoDao.updateMemo(memo)
@@ -50,7 +58,29 @@ class MemoRepository @Inject constructor(
         repeatType: RepeatType,
         customDays: String
     ) = memoDao.updateReminder(id, hasReminder, reminderTime, repeatType.name, customDays)
-    suspend fun updateCategory(id: String, categoryId: String?, now: Long) = memoDao.updateCategory(id, categoryId, now)
+    fun getTagsForMemo(memoId: String) = tagDao.getTagsForMemo(memoId)
+    fun getAllTags(): Flow<List<TagEntity>> = tagDao.getAllTags()
+    suspend fun getTagById(id: String): TagEntity? = tagDao.getTagById(id)
+    suspend fun insertTag(tag: TagEntity) = tagDao.insertTag(tag)
+    suspend fun addTagToMemo(crossRef: MemoTagCrossRef) = tagDao.addTagToMemo(crossRef)
+    suspend fun removeTagFromMemo(memoId: String, tagId: String) = tagDao.removeTagFromMemo(memoId, tagId)
+    fun getMemoIdsByTag(tagId: String): Flow<List<String>> = tagDao.getMemoIdsByTag(tagId)
+
+    fun getRemindersForMemo(memoId: String) = reminderDao.getRemindersForMemo(memoId)
+    fun getUpcomingRemindersForDate(start: Long, end: Long) = reminderDao.getRemindersByDate(start, end)
+    fun getAllUpcomingReminders(now: Long) = reminderDao.getUpcomingReminders(now)
+    suspend fun getAllReminders(): List<ReminderEntity> = reminderDao.getAllReminders()
+    suspend fun getReminderById(id: String): ReminderEntity? = reminderDao.getReminderById(id)
+    suspend fun insertReminder(reminder: ReminderEntity) = reminderDao.insertReminder(reminder)
+    suspend fun updateReminderEntry(id: String, reminderTime: Long, repeatType: RepeatType, customDays: String) = reminderDao.updateReminder(id, reminderTime, repeatType.name, customDays)
+    suspend fun deleteReminderById(id: String) = reminderDao.deleteReminderById(id)
+    suspend fun deleteRemindersByMemo(memoId: String) = reminderDao.deleteRemindersByMemo(memoId)
+    suspend fun deleteReminder(reminder: ReminderEntity) = reminderDao.deleteReminderById(reminder.id)
+    suspend fun getRemindersByDate(start: Long, end: Long): Flow<List<ReminderEntity>> = reminderDao.getRemindersByDate(start, end)
+    suspend fun updateReminderTime(id: String, reminderTime: Long) = reminderDao.updateReminder(id, reminderTime, RepeatType.NONE.name, "")
+    suspend fun updateReminderFields(id: String, reminderTime: Long, repeatType: RepeatType, customDays: String) = reminderDao.updateReminder(id, reminderTime, repeatType.name, customDays)
+    suspend fun getMemoTags(memoId: String): List<TagEntity> = getTagsForMemo(memoId).first()
+    suspend fun getMemoReminders(memoId: String): List<ReminderEntity> = getRemindersForMemo(memoId).first()
     suspend fun updateNote(id: String, note: String, now: Long) = memoDao.updateNote(id, note, now)
     suspend fun getAllMemosWithReminders(): List<MemoEntity> = memoDao.getAllMemosWithReminders()
     suspend fun getMemoCount(): Int = memoDao.getMemoCount()

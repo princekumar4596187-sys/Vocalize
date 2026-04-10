@@ -9,11 +9,16 @@ import androidx.room.TypeConverters
 import com.vocalize.app.data.local.dao.CategoryDao
 import com.vocalize.app.data.local.dao.MemoDao
 import com.vocalize.app.data.local.dao.PlaylistDao
+import com.vocalize.app.data.local.dao.ReminderDao
+import com.vocalize.app.data.local.dao.TagDao
 import com.vocalize.app.data.local.entity.CategoryEntity
 import com.vocalize.app.data.local.entity.MemoEntity
 import com.vocalize.app.data.local.entity.PlaylistEntity
 import com.vocalize.app.data.local.entity.PlaylistMemoCrossRef
 import com.vocalize.app.data.local.entity.RepeatType
+import com.vocalize.app.data.local.entity.TagEntity
+import com.vocalize.app.data.local.entity.MemoTagCrossRef
+import com.vocalize.app.data.local.entity.ReminderEntity
 
 class Converters {
     @TypeConverter
@@ -28,9 +33,12 @@ class Converters {
         MemoEntity::class,
         CategoryEntity::class,
         PlaylistEntity::class,
-        PlaylistMemoCrossRef::class
+        PlaylistMemoCrossRef::class,
+        TagEntity::class,
+        MemoTagCrossRef::class,
+        ReminderEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -38,6 +46,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun memoDao(): MemoDao
     abstract fun categoryDao(): CategoryDao
     abstract fun playlistDao(): PlaylistDao
+    abstract fun tagDao(): TagDao
+    abstract fun reminderDao(): ReminderDao
 
     companion object {
         @Volatile private var INSTANCE: AppDatabase? = null

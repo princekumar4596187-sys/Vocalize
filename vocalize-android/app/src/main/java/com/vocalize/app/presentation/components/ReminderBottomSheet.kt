@@ -19,31 +19,27 @@ import java.util.*
 fun ReminderBottomSheet(
     currentReminderTime: Long?,
     currentRepeatType: RepeatType,
+    currentCustomDays: String = "",
     onDismiss: () -> Unit,
     onSave: (Long, RepeatType, String) -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var selectedRepeat by remember { mutableStateOf(currentRepeatType) }
-    var customDays by remember { mutableStateOf("") }
+    var customDays by remember { mutableStateOf(currentCustomDays) }
 
-    val dateFormatter = SimpleDateFormat("EEE, MMM d yyyy", Locale.getDefault())
-    val timeFormatter = SimpleDateFormat("h:mm a", Locale.getDefault())
+    val initialTime = currentReminderTime ?: Calendar.getInstance().apply {
+        add(Calendar.HOUR_OF_DAY, 1)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }.timeInMillis
 
-    val calendar = remember {
-        Calendar.getInstance().apply {
-            currentReminderTime?.let { timeInMillis = it } ?: apply {
-                add(Calendar.HOUR_OF_DAY, 1)
-                set(Calendar.MINUTE, 0)
-                set(Calendar.SECOND, 0)
-                set(Calendar.MILLISECOND, 0)
-            }
-        }
-    }
-    var selectedYear by remember { mutableIntStateOf(calendar.get(Calendar.YEAR)) }
-    var selectedMonth by remember { mutableIntStateOf(calendar.get(Calendar.MONTH)) }
-    var selectedDay by remember { mutableIntStateOf(calendar.get(Calendar.DAY_OF_MONTH)) }
-    var selectedHour by remember { mutableIntStateOf(calendar.get(Calendar.HOUR_OF_DAY)) }
-    var selectedMinute by remember { mutableIntStateOf(calendar.get(Calendar.MINUTE)) }
+    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = initialTime)
+
+    val timePickerState = rememberTimePickerState(
+        initialHour = Calendar.getInstance().apply { timeInMillis = initialTime }.get(Calendar.HOUR_OF_DAY),
+        initialMinute = Calendar.getInstance().apply { timeInMillis = initialTime }.get(Calendar.MINUTE)
+    )
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -68,9 +64,7 @@ fun ReminderBottomSheet(
             Text("Date", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(8.dp))
             DatePicker(
-                state = rememberDatePickerState(
-                    initialSelectedDateMillis = calendar.timeInMillis
-                ),
+                state = datePickerState,
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -80,10 +74,6 @@ fun ReminderBottomSheet(
             Text("Time", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(8.dp))
 
-            val timePickerState = rememberTimePickerState(
-                initialHour = selectedHour,
-                initialMinute = selectedMinute
-            )
             TimeInput(
                 state = timePickerState,
                 modifier = Modifier.fillMaxWidth()
@@ -132,7 +122,9 @@ fun ReminderBottomSheet(
                 ) { Text("Cancel") }
                 Button(
                     onClick = {
+                        val selectedDate = datePickerState.selectedDateMillis ?: initialTime
                         val cal = Calendar.getInstance().apply {
+                            timeInMillis = selectedDate
                             set(Calendar.HOUR_OF_DAY, timePickerState.hour)
                             set(Calendar.MINUTE, timePickerState.minute)
                             set(Calendar.SECOND, 0)

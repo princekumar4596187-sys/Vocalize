@@ -4,6 +4,7 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -23,6 +24,7 @@ import com.vocalize.app.presentation.components.WaveformView
 import com.vocalize.app.presentation.components.ReminderBottomSheet
 import com.vocalize.app.presentation.components.AddToPlaylistBottomSheet
 import com.vocalize.app.presentation.components.SetCategoryBottomSheet
+import com.vocalize.app.presentation.components.TagSelectionBottomSheet
 import com.vocalize.app.presentation.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -101,6 +103,11 @@ fun MemoDetailScreen(
                                     text = { Text("Set category") },
                                     leadingIcon = { Icon(Icons.Default.Label, null) },
                                     onClick = { showMenu = false; viewModel.showCategorySheet() }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Set tags") },
+                                    leadingIcon = { Icon(Icons.Default.Tag, null) },
+                                    onClick = { showMenu = false; viewModel.showTagSheet() }
                                 )
                             }
                         }
@@ -230,6 +237,24 @@ fun MemoDetailScreen(
             }
 
             Spacer(Modifier.height(20.dp))
+
+            if (uiState.memoTags.isNotEmpty()) {
+                Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+                    Text("Tags", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                    Spacer(Modifier.height(8.dp))
+                    FlowRow(mainAxisSpacing = 8.dp, crossAxisSpacing = 8.dp) {
+                        uiState.memoTags.forEach { tag ->
+                            AssistChip(
+                                onClick = {},
+                                label = { Text(tag.name) },
+                                colors = AssistChipDefaults.assistChipColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f))
+                            )
+                        }
+                    }
+                }
+                Spacer(Modifier.height(20.dp))
+            }
+
             HorizontalDivider(modifier = Modifier.padding(horizontal = 24.dp))
             Spacer(Modifier.height(20.dp))
 
@@ -240,43 +265,53 @@ fun MemoDetailScreen(
                     Spacer(Modifier.width(8.dp))
                     Text("Reminder", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                     Spacer(Modifier.weight(1f))
-                    TextButton(onClick = viewModel::showReminderSheet) {
-                        Text(if (memo.hasReminder) "Edit" else "Set", color = VocalizeRed)
+                    TextButton(onClick = { viewModel.showReminderSheet() }) {
+                        Text(if (uiState.reminders.isNotEmpty()) "Add / Edit" else "Add", color = VocalizeRed)
                     }
                 }
 
                 AnimatedVisibility(
-                    visible = memo.hasReminder && memo.reminderTime != null,
+                    visible = uiState.reminders.isNotEmpty(),
                     enter = slideInVertically() + fadeIn()
                 ) {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = VocalizeOrange.copy(0.1f)),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(Icons.Default.Alarm, null, tint = VocalizeOrange)
-                            Spacer(Modifier.width(8.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                memo.reminderTime?.let {
-                                    Text(
-                                        formatDateTime(it),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = VocalizeOrange
-                                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        uiState.reminders.forEach { reminder ->
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(containerColor = VocalizeOrange.copy(0.1f)),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(Icons.Default.Alarm, null, tint = VocalizeOrange)
+                                    Spacer(Modifier.width(8.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            formatDateTime(reminder.reminderTime),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = VocalizeOrange
+                                        )
+                                        Text(
+                                            reminder.repeatType.name.lowercase().replaceFirstChar { it.uppercase() },
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = VocalizeOrange.copy(0.7f)
+                                        )
+                                    }
+                                    IconButton(onClick = { viewModel.showReminderSheet(reminder.id) }, modifier = Modifier.size(32.dp)) {
+                                        Icon(Icons.Default.Edit, "Edit", tint = VocalizeOrange, modifier = Modifier.size(16.dp))
+                                    }
+                                    IconButton(onClick = { viewModel.deleteReminder(reminder.id) }, modifier = Modifier.size(32.dp)) {
+                                        Icon(Icons.Default.Delete, "Delete", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
+                                    }
                                 }
-                                Text(
-                                    memo.repeatType.name.lowercase().replaceFirstChar { it.uppercase() },
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = VocalizeOrange.copy(0.7f)
-                                )
                             }
-                            IconButton(onClick = viewModel::clearReminder, modifier = Modifier.size(32.dp)) {
-                                Icon(Icons.Default.Close, "Clear", tint = VocalizeOrange, modifier = Modifier.size(16.dp))
-                            }
+                        }
+                        TextButton(onClick = viewModel::clearAllReminders) {
+                            Text("Clear all reminders", color = MaterialTheme.colorScheme.error)
                         }
                     }
                 }
@@ -366,11 +401,13 @@ fun MemoDetailScreen(
 
     // Reminder bottom sheet
     if (uiState.showReminderSheet) {
+        val editingReminder = uiState.reminders.firstOrNull { it.id == uiState.editingReminderId }
         ReminderBottomSheet(
-            currentReminderTime = memo?.reminderTime,
-            currentRepeatType = memo?.repeatType ?: RepeatType.NONE,
+            currentReminderTime = editingReminder?.reminderTime,
+            currentRepeatType = editingReminder?.repeatType ?: RepeatType.NONE,
+            currentCustomDays = editingReminder?.customDays ?: "",
             onDismiss = viewModel::hideReminderSheet,
-            onSave = { time, repeat, days -> viewModel.setReminder(time, repeat, days) }
+            onSave = { time, repeat, days -> viewModel.setReminder(time, repeat, days, editingReminder?.id) }
         )
     }
 
@@ -390,6 +427,16 @@ fun MemoDetailScreen(
             currentCategoryId = memo?.categoryId,
             onDismiss = viewModel::hideCategorySheet,
             onSelect = viewModel::updateCategory
+        )
+    }
+
+    if (uiState.showTagSheet) {
+        TagSelectionBottomSheet(
+            tags = uiState.tags,
+            selectedTagIds = uiState.memoTags.map { it.id }.toSet(),
+            onDismiss = viewModel::hideTagSheet,
+            onToggleTag = viewModel::toggleTag,
+            onCreateTag = viewModel::createTag
         )
     }
 
