@@ -106,9 +106,9 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
 
     // Google Drive Backup
-    implementation(libs.play.services.auth)
-    implementation(libs.google.api.client.android)
-    implementation(libs.google.api.services.drive)
+    // implementation(libs.play.services.auth)
+    // implementation(libs.google.api.client.android)
+    // implementation(libs.google.api.services.drive)
 
     // Testing
     testImplementation(libs.junit)
