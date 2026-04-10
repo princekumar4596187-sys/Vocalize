@@ -2,9 +2,9 @@ package com.vocalize.app.util
 
 import android.content.Context
 import android.media.MediaPlayer
-import android.media.session.PlaybackState
 import android.os.Build
 import androidx.media.session.MediaSessionCompat
+import androidx.media.session.PlaybackStateCompat
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -201,18 +201,18 @@ class AudioPlayerManager @Inject constructor(
     }
 
     private fun updateMediaSessionState(playing: Boolean) {
-        val state = PlaybackState.Builder()
+        val state = PlaybackStateCompat.Builder()
             .setActions(
-                PlaybackState.ACTION_PLAY or
-                PlaybackState.ACTION_PAUSE or
-                PlaybackState.ACTION_PLAY_PAUSE or
-                PlaybackState.ACTION_STOP or
-                PlaybackState.ACTION_SEEK_TO or
-                PlaybackState.ACTION_SKIP_TO_NEXT or
-                PlaybackState.ACTION_SKIP_TO_PREVIOUS
+                PlaybackStateCompat.ACTION_PLAY or
+                PlaybackStateCompat.ACTION_PAUSE or
+                PlaybackStateCompat.ACTION_PLAY_PAUSE or
+                PlaybackStateCompat.ACTION_STOP or
+                PlaybackStateCompat.ACTION_SEEK_TO or
+                PlaybackStateCompat.ACTION_SKIP_TO_NEXT or
+                PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS
             )
             .setState(
-                if (playing) PlaybackState.STATE_PLAYING else PlaybackState.STATE_PAUSED,
+                if (playing) PlaybackStateCompat.STATE_PLAYING else PlaybackStateCompat.STATE_PAUSED,
                 _playbackState.value.currentPosition.toLong(),
                 _playbackState.value.playbackSpeed
             )

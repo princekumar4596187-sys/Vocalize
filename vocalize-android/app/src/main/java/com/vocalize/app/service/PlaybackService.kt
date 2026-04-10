@@ -45,7 +45,7 @@ class PlaybackService : Service() {
 
     private fun startPositionUpdates() {
         positionUpdateJob = scope.launch {
-            while (isActive) {
+            while (coroutineContext.isActive) {
                 audioPlayerManager.updatePosition()
                 delay(500)
             }

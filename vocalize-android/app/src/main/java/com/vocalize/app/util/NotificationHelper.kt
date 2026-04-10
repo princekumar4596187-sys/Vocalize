@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
+import androidx.media.session.MediaSessionCompat
 import com.vocalize.app.MainActivity
 import com.vocalize.app.R
 import com.vocalize.app.VocalizeApplication
@@ -125,7 +126,7 @@ class NotificationHelper @Inject constructor(
         isPlaying: Boolean,
         currentPosition: Int,
         duration: Int,
-        mediaSessionToken: androidx.media.session.MediaSessionCompat.Token?,
+        mediaSessionToken: MediaSessionCompat.Token?,
         pendingIntent: PendingIntent,
         playPauseIntent: PendingIntent,
         stopIntent: PendingIntent,
