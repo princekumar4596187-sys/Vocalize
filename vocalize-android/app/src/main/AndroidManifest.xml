@@ -91,11 +91,23 @@
             android:label="Vocalize Widget">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.vocalize.app.widget.ACTION_REFRESH" />
+                <action android:name="com.vocalize.app.widget.ACTION_PLAY_MEMO" />
+                <action android:name="com.vocalize.app.widget.ACTION_OPEN_RECORDER" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_info" />
         </receiver>
+
+        <!-- Widget recorder overlay — appears as a floating card without opening main app -->
+        <activity
+            android:name=".widget.WidgetRecorderActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Vocalize.Overlay"
+            android:launchMode="singleTop"
+            android:configChanges="orientation|screenSize"
+            android:windowSoftInputMode="stateVisible|adjustResize" />
 
         <!-- Playback foreground service -->
         <service

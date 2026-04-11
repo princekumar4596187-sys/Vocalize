@@ -21,4 +21,15 @@
         <item name="postSplashScreenTheme">@style/Theme.Vocalize</item>
     </style>
 
+
+    <!-- Widget recorder overlay: appears as a floating card on home screen -->
+    <style name="Theme.Vocalize.Overlay" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:backgroundDimEnabled">false</item>
+        <item name="android:windowAnimationStyle">@null</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+
 </resources>

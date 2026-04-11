@@ -141,4 +141,10 @@ interface MemoDao {
 
     @Query("SELECT * FROM memos ORDER BY dateCreated DESC LIMIT :limit")
     fun getRecentMemosSync(limit: Int): List<MemoEntity>
+
+    @Query("SELECT * FROM memos ORDER BY isPinned DESC, dateCreated DESC LIMIT :limit")
+    fun getWidgetMemos(limit: Int): List<MemoEntity>
+
+    @Query("SELECT COUNT(*) FROM memos")
+    fun getMemoCountSync(): Int
 }

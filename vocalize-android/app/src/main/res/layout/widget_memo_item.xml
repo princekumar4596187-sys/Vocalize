@@ -3,60 +3,61 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_item_root"
     android:layout_width="match_parent"
-    android:layout_height="52dp"
+    android:layout_height="50dp"
     android:orientation="horizontal"
     android:gravity="center_vertical"
-    android:paddingStart="4dp"
-    android:paddingEnd="4dp">
+    android:paddingStart="0dp"
+    android:paddingEnd="6dp">
 
-    <!-- Category colour dot -->
+    <!-- Category colour strip (left) -->
     <View
-        android:id="@+id/widget_item_color_dot"
-        android:layout_width="8dp"
-        android:layout_height="8dp"
+        android:id="@+id/widget_item_color_strip"
+        android:layout_width="3dp"
+        android:layout_height="30dp"
         android:background="#FFEF4444"
         android:layout_marginEnd="10dp" />
 
-    <!-- Title and duration -->
+    <!-- Title + subtitle column -->
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:orientation="vertical"
-        android:layout_marginEnd="8dp">
+        android:orientation="vertical">
 
+        <!-- Title row (pin emoji injected via code if pinned) -->
         <TextView
             android:id="@+id/widget_item_title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Voice Memo"
-            android:textSize="13sp"
+            android:textSize="12sp"
             android:textColor="#FFFFFFFF"
             android:fontFamily="sans-serif-medium"
             android:maxLines="1"
             android:ellipsize="end" />
 
+        <!-- Duration · relative time -->
         <TextView
             android:id="@+id/widget_item_subtitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="0:30 · Just now"
-            android:textSize="10sp"
-            android:textColor="#80FFFFFF"
+            android:textSize="9sp"
+            android:textColor="#65FFFFFF"
             android:maxLines="1"
             android:ellipsize="end" />
 
     </LinearLayout>
 
-    <!-- Play button -->
+    <!-- Play / listen button -->
     <ImageView
         android:id="@+id/widget_item_play"
-        android:layout_width="32dp"
-        android:layout_height="32dp"
+        android:layout_width="28dp"
+        android:layout_height="28dp"
         android:src="@drawable/ic_play"
+        android:background="@drawable/widget_play_btn_bg"
         android:scaleType="center"
-        android:background="#33FFFFFF"
-        android:padding="6dp"
-        android:contentDescription="@string/memo_play" />
+        android:padding="7dp"
+        android:contentDescription="Play" />
 
 </LinearLayout>

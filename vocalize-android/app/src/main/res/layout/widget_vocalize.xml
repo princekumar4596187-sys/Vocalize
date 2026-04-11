@@ -6,14 +6,20 @@
     android:layout_height="match_parent"
     android:background="@drawable/widget_bg"
     android:orientation="vertical"
-    android:padding="12dp">
+    android:padding="10dp">
 
-    <!-- Header row -->
+    <!-- ─── Header Row ─────────────────────────────────── -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="48dp"
+        android:layout_height="38dp"
         android:orientation="horizontal"
         android:gravity="center_vertical">
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/ic_mic"
+            android:tint="#FFEF4444" />
 
         <TextView
             android:layout_width="0dp"
@@ -21,84 +27,112 @@
             android:layout_weight="1"
             android:text="Vocalize"
             android:textStyle="bold"
-            android:textSize="16sp"
+            android:textSize="14sp"
             android:textColor="#FFFFFFFF"
-            android:fontFamily="sans-serif-medium" />
-
-        <!-- Record FAB button -->
-        <ImageView
-            android:id="@+id/widget_record_button"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:background="@drawable/ic_mic_bg"
-            android:src="@drawable/ic_mic"
-            android:scaleType="center"
-            android:contentDescription="@string/widget_record"
-            android:padding="6dp" />
-
-    </LinearLayout>
-
-    <!-- Divider -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="#33FFFFFF"
-        android:layout_marginBottom="6dp" />
-
-    <!-- Sort/filter row -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="32dp"
-        android:orientation="horizontal"
-        android:gravity="center_vertical">
-
-        <TextView
-            android:id="@+id/widget_sort_label"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Recent"
-            android:textSize="11sp"
-            android:textColor="#B3FFFFFF"
-            android:paddingEnd="4dp" />
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text=""
-            android:textSize="11sp"
-            android:textColor="#80FFFFFF" />
+            android:layout_marginStart="6dp" />
 
         <TextView
             android:id="@+id/widget_memo_count"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text=""
-            android:textSize="11sp"
-            android:textColor="#80FFFFFF" />
+            android:text="0 memos"
+            android:textSize="10sp"
+            android:textColor="#70FFFFFF"
+            android:layout_marginEnd="4dp" />
+
+        <ImageView
+            android:id="@+id/widget_refresh_button"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:src="@drawable/ic_refresh"
+            android:tint="#70FFFFFF"
+            android:padding="4dp" />
 
     </LinearLayout>
 
-    <!-- Memo list -->
+    <!-- ─── Record Button ─────────────────────────────────── -->
+    <LinearLayout
+        android:id="@+id/widget_record_button"
+        android:layout_width="match_parent"
+        android:layout_height="42dp"
+        android:background="@drawable/widget_record_btn_bg"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:layout_marginBottom="6dp">
+
+        <ImageView
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:src="@drawable/ic_mic"
+            android:tint="#FFFFFFFF" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="New Voice Memo"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFFFF"
+            android:layout_marginStart="8dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="›"
+            android:textSize="18sp"
+            android:textColor="#AAEF4444" />
+
+    </LinearLayout>
+
+    <!-- ─── Section Label ─────────────────────────────────── -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="18dp"
+        android:text="PINNED FIRST · LAST 5"
+        android:textSize="8sp"
+        android:textColor="#50FFFFFF"
+        android:gravity="center_vertical"
+        android:letterSpacing="0.15" />
+
+    <!-- ─── Memo List ─────────────────────────────────── -->
     <ListView
         android:id="@+id/widget_memo_list"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:divider="#1AFFFFFF"
-        android:dividerHeight="0.5dp"
+        android:divider="#0FFFFFFF"
+        android:dividerHeight="1dp"
         android:scrollbars="none" />
 
-    <!-- Empty state -->
-    <TextView
+    <!-- ─── Empty State ─────────────────────────────────── -->
+    <LinearLayout
         android:id="@+id/widget_empty_text"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:text="@string/widget_no_memos"
+        android:orientation="vertical"
         android:gravity="center"
-        android:textSize="12sp"
-        android:textColor="#80FFFFFF"
-        android:visibility="gone" />
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="No voice memos yet"
+            android:textSize="12sp"
+            android:textColor="#70FFFFFF"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Tap above to record your first"
+            android:textSize="10sp"
+            android:textColor="#50FFFFFF"
+            android:layout_marginTop="2dp" />
+
+    </LinearLayout>
 
 </LinearLayout>
