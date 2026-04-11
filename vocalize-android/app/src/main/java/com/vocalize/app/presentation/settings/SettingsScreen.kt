@@ -55,6 +55,7 @@ fun SettingsScreen(
     var allPermissionsGranted by remember { mutableStateOf(PermissionsHelper.areAllRequiredPermissionsGranted(context)) }
     var allFilesAccessGranted by remember { mutableStateOf(PermissionsHelper.hasManageExternalStoragePermission(context)) }
     var alarmsAndRemindersGranted by remember { mutableStateOf(PermissionsHelper.hasAlarmsAndRemindersPermission(context)) }
+    var batteryOptimizationIgnored by remember { mutableStateOf(PermissionsHelper.isIgnoringBatteryOptimizations(context)) }
     var previewToneUri by remember { mutableStateOf<Uri?>(null) }
     var isPreviewPlaying by remember { mutableStateOf(false) }
     val toneListScrollState = rememberScrollState()
@@ -93,6 +94,7 @@ fun SettingsScreen(
                 allPermissionsGranted = PermissionsHelper.areAllRequiredPermissionsGranted(context)
                 allFilesAccessGranted = PermissionsHelper.hasManageExternalStoragePermission(context)
                 alarmsAndRemindersGranted = PermissionsHelper.hasAlarmsAndRemindersPermission(context)
+                batteryOptimizationIgnored = PermissionsHelper.isIgnoringBatteryOptimizations(context)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -411,6 +413,19 @@ fun SettingsScreen(
                         "Grant exact alarm permission for precise reminder scheduling",
                     onClick = { PermissionsHelper.openAlarmSettings(context) }
                 )
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                SettingsActionRow(
+                    icon = Icons.Default.BatterySaver,
+                    iconTint = if (batteryOptimizationIgnored) VocalizeGreen else MaterialTheme.colorScheme.error,
+                    title = "Disable battery optimization",
+                    subtitle = if (batteryOptimizationIgnored)
+                        "Battery optimization disabled — reminders fire even when phone is idle"
+                    else
+                        "CRITICAL: Tap to disable battery optimization or reminders may be blocked when phone sleeps",
+                    onClick = {
+                        PermissionsHelper.openBatteryOptimizationSettings(context)
+                    }
+                )
             }
 
             // ── Data Management ──────────────────────────────────────────
@@ -616,25 +631,61 @@ fun SettingsScreen(
 
     if (showToneStatusDialog) {
         val toneStatusIssue = when {
+            !batteryOptimizationIgnored ->
+                "Battery optimization is ON — Android may block reminders when the screen is off. Go to Permissions and disable it."
+            !alarmsAndRemindersGranted ->
+                "Alarms & Reminders permission not granted — reminders may not fire when app is closed. Tap to grant it."
+            !exactAlarmPermissionGranted ->
+                "Exact alarm permission is not granted — reminder timing may be inaccurate."
             !allFilesAccessGranted && uiState.reminderToneFolderUri != null ->
                 "Custom tone folder selected but all-files access is not granted."
             uiState.reminderToneFileUri.isNullOrBlank() ->
-                "No reminder tone is selected yet. The app will use the default notification sound."
+                "No reminder tone selected — the app will use the default notification sound."
             uiState.availableReminderTones.isEmpty() ->
                 "The selected folder contains no audio files. Choose another folder."
-            !exactAlarmPermissionGranted ->
-                "Exact alarm permission is not granted; reminder delivery may be delayed."
             else ->
-                "Tone configured correctly. If sound still does not play, verify battery optimization and notification settings."
+                "All permissions granted and tone configured. Reminders should fire reliably even when the app is closed."
         }
 
         AlertDialog(
             onDismissRequest = { showToneStatusDialog = false },
-            title = { Text("Reminder tone status") },
+            title = { Text("Reminder health check") },
             text = {
                 Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Status details", style = MaterialTheme.typography.bodyLarge)
+                    Text("Status", style = MaterialTheme.typography.bodyLarge)
                     Text(toneStatusIssue, style = MaterialTheme.typography.bodyMedium)
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    SettingsInfoRow(
+                        icon = Icons.Default.BatterySaver,
+                        iconTint = if (batteryOptimizationIgnored) VocalizeGreen else MaterialTheme.colorScheme.error,
+                        title = "Battery optimization",
+                        subtitle = if (batteryOptimizationIgnored) "Disabled — reminders fire in all states" else "CRITICAL: Still ON — may block reminders"
+                    )
+                    SettingsInfoRow(
+                        icon = Icons.Default.Schedule,
+                        iconTint = if (alarmsAndRemindersGranted) VocalizeGreen else MaterialTheme.colorScheme.error,
+                        title = "Alarms & Reminders",
+                        subtitle = if (alarmsAndRemindersGranted) "Granted" else "Not granted — reminders may be blocked"
+                    )
+                    SettingsInfoRow(
+                        icon = Icons.Default.Security,
+                        iconTint = if (exactAlarmPermissionGranted) VocalizeGreen else MaterialTheme.colorScheme.error,
+                        title = "Exact alarm",
+                        subtitle = if (exactAlarmPermissionGranted) "Granted — precise timing active" else "Not granted — timing may drift"
+                    )
+                    SettingsInfoRow(
+                        icon = Icons.Default.CheckCircle,
+                        iconTint = if (allPermissionsGranted) VocalizeGreen else MaterialTheme.colorScheme.error,
+                        title = "Core permissions",
+                        subtitle = if (allPermissionsGranted) "Microphone + notifications granted" else "Missing microphone or notification permission"
+                    )
+                    SettingsInfoRow(
+                        icon = Icons.Default.Storage,
+                        iconTint = if (allFilesAccessGranted) VocalizeGreen else MaterialTheme.colorScheme.error,
+                        title = "Storage access",
+                        subtitle = if (allFilesAccessGranted) "All files access granted" else "Needs all files permission"
+                    )
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     SettingsInfoRow(
                         icon = Icons.Default.MusicNote,
                         iconTint = VocalizeGreen,
@@ -652,24 +703,6 @@ fun SettingsScreen(
                         iconTint = VocalizeOrange,
                         title = "Volume",
                         subtitle = "${uiState.reminderToneVolume}%"
-                    )
-                    SettingsInfoRow(
-                        icon = Icons.Default.CheckCircle,
-                        iconTint = if (allPermissionsGranted) VocalizeGreen else MaterialTheme.colorScheme.error,
-                        title = "Core permissions",
-                        subtitle = if (allPermissionsGranted) "Audio + notification permissions granted" else "Missing microphone or notification permission"
-                    )
-                    SettingsInfoRow(
-                        icon = Icons.Default.Security,
-                        iconTint = if (exactAlarmPermissionGranted) VocalizeGreen else MaterialTheme.colorScheme.error,
-                        title = "Alarm permission",
-                        subtitle = if (exactAlarmPermissionGranted) "Exact alarm granted" else "Needs exact alarm permission"
-                    )
-                    SettingsInfoRow(
-                        icon = Icons.Default.Storage,
-                        iconTint = if (allFilesAccessGranted) VocalizeGreen else MaterialTheme.colorScheme.error,
-                        title = "Storage access",
-                        subtitle = if (allFilesAccessGranted) "All files access granted" else "Needs all files permission"
                     )
                 }
             },
