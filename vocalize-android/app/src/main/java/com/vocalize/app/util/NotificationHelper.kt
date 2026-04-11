@@ -218,6 +218,7 @@ class NotificationHelper @Inject constructor(
             .setStyle(NotificationCompat.BigTextStyle().bigText(noteText))
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .build()
     }
 
     fun showReminderNoteNotification(memoId: String, memoTitle: String) {
