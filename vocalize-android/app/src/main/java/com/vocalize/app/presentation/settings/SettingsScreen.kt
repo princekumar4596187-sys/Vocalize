@@ -39,6 +39,7 @@ import java.util.*
 fun SettingsScreen(
     onNavigateBack: () -> Unit,
     onNavigateToCategories: () -> Unit = {},
+    onNavigateToAllReminders: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -268,6 +269,14 @@ fun SettingsScreen(
                     title = "Default snooze time",
                     subtitle = "${uiState.defaultSnoozeMinutes} minutes",
                     onClick = { showSnoozeDialog = true }
+                )
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                SettingsActionRow(
+                    icon = Icons.Default.Alarm,
+                    iconTint = VocalizeAccentBlue,
+                    title = "View all reminders",
+                    subtitle = "Monitor upcoming and past reminders with live countdowns",
+                    onClick = onNavigateToAllReminders
                 )
             }
 

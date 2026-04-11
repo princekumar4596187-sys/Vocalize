@@ -15,6 +15,7 @@ import com.vocalize.app.presentation.settings.SettingsScreen
 import com.vocalize.app.presentation.splash.SplashScreen
 import com.vocalize.app.presentation.playlist.PlaylistScreen
 import com.vocalize.app.presentation.category.CategoryManageScreen
+import com.vocalize.app.presentation.reminders.AllRemindersScreen
 
 sealed class Screen(val route: String) {
     object Splash : Screen("splash")
@@ -30,6 +31,7 @@ sealed class Screen(val route: String) {
         fun createRoute(playlistId: String) = "playlist/$playlistId"
     }
     object CategoryManage : Screen("category_manage")
+    object AllReminders : Screen("all_reminders")
 }
 
 @Composable
@@ -160,7 +162,13 @@ fun NavGraph(onSplashComplete: () -> Unit) {
         composable(Screen.Settings.route) {
             SettingsScreen(
                 onNavigateBack = { navController.popBackStack() },
-                onNavigateToCategories = { navController.navigate(Screen.CategoryManage.route) }
+                onNavigateToCategories = { navController.navigate(Screen.CategoryManage.route) },
+                onNavigateToAllReminders = { navController.navigate(Screen.AllReminders.route) }
+            )
+        }
+        composable(Screen.AllReminders.route) {
+            AllRemindersScreen(
+                onNavigateBack = { navController.popBackStack() }
             )
         }
         composable(Screen.CategoryManage.route) {

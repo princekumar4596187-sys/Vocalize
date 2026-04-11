@@ -29,6 +29,7 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
         val memoId = intent.getStringExtra(Constants.EXTRA_MEMO_ID) ?: return
         val memoTitle = intent.getStringExtra(Constants.EXTRA_MEMO_TITLE) ?: "Voice Memo"
         val reminderId = intent.getStringExtra(Constants.EXTRA_REMINDER_ID)
+        val scheduledTime = intent.getLongExtra(ReminderWorker.EXTRA_SCHEDULED_TIME, System.currentTimeMillis())
         val pendingResult = goAsync()
 
         when (intent.action) {
@@ -50,7 +51,7 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
 
                 // Hand off DB work to WorkManager — runs reliably even if process is killed,
                 // no 10-second goAsync timeout risk, no conflict with the service notification.
-                ReminderWorker.enqueueDbWork(context, memoId, memoTitle, reminderId)
+                ReminderWorker.enqueueDbWork(context, memoId, memoTitle, reminderId, scheduledTime)
                 pendingResult.finish()
                 return
             }

@@ -4,6 +4,7 @@ import com.vocalize.app.data.local.dao.CategoryDao
 import com.vocalize.app.data.local.dao.MemoDao
 import com.vocalize.app.data.local.dao.PlaylistDao
 import com.vocalize.app.data.local.dao.ReminderDao
+import com.vocalize.app.data.local.dao.ReminderLogDao
 import com.vocalize.app.data.local.dao.TagDao
 import com.vocalize.app.data.local.entity.CategoryEntity
 import com.vocalize.app.data.local.entity.MemoCategoryCrossRef
@@ -11,6 +12,7 @@ import com.vocalize.app.data.local.entity.MemoEntity
 import com.vocalize.app.data.local.entity.PlaylistEntity
 import com.vocalize.app.data.local.entity.PlaylistMemoCrossRef
 import com.vocalize.app.data.local.entity.ReminderEntity
+import com.vocalize.app.data.local.entity.ReminderLogEntity
 import com.vocalize.app.data.local.entity.TagEntity
 import com.vocalize.app.data.local.entity.MemoTagCrossRef
 import com.vocalize.app.data.local.entity.RepeatType
@@ -25,7 +27,8 @@ class MemoRepository @Inject constructor(
     private val categoryDao: CategoryDao,
     private val playlistDao: PlaylistDao,
     private val tagDao: TagDao,
-    private val reminderDao: ReminderDao
+    private val reminderDao: ReminderDao,
+    private val reminderLogDao: ReminderLogDao
 ) {
     // ─── Memos ───────────────────────────────────────────
     fun getAllMemos(): Flow<List<MemoEntity>> = memoDao.getAllMemos()
@@ -92,6 +95,12 @@ class MemoRepository @Inject constructor(
     suspend fun updatePlaybackPosition(id: String, positionMs: Long) = memoDao.updatePlaybackPosition(id, positionMs)
     suspend fun deleteAllMemos() = memoDao.deleteAllMemos()
 
+    // ─── Reminder Logs ───────────────────────────────────────────
+    suspend fun insertReminderLog(log: ReminderLogEntity) = reminderLogDao.insertLog(log)
+    suspend fun getLatestLogForReminder(reminderId: String): ReminderLogEntity? = reminderLogDao.getLatestLogForReminder(reminderId)
+    fun getAllReminderLogs(): Flow<List<ReminderLogEntity>> = reminderLogDao.getAllLogs()
+    suspend fun pruneOldReminderLogs(beforeMs: Long) = reminderLogDao.deleteOldLogs(beforeMs)
+
     // ─── Categories ───────────────────────────────────────────
     fun getAllCategories(): Flow<List<CategoryEntity>> = categoryDao.getAllCategories()
     suspend fun getCategoryById(id: String): CategoryEntity? = categoryDao.getCategoryById(id)
@@ -103,6 +112,9 @@ class MemoRepository @Inject constructor(
     suspend fun getAllMemoCategoryCrossRefs(): List<MemoCategoryCrossRef> = memoDao.getAllMemoCategoryCrossRefs()
     fun getCategoriesForMemo(memoId: String) = memoDao.getCategoriesForMemo(memoId)
     suspend fun deleteCategory(category: CategoryEntity) = categoryDao.deleteCategory(category)
+
+    // ─── Reminder Flows (for UI observation) ─────────────────────────
+    fun getAllRemindersFlow(): Flow<List<ReminderEntity>> = reminderDao.getAllRemindersFlow()
 
     // ─── Playlists ───────────────────────────────────────────
     fun getAllPlaylists(): Flow<List<PlaylistEntity>> = playlistDao.getAllPlaylists()

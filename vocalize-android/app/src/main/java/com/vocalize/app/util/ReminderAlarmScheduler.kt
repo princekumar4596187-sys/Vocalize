@@ -37,6 +37,7 @@ class ReminderAlarmScheduler @Inject constructor(
             putExtra(Constants.EXTRA_MEMO_ID, reminder.memoId)
             putExtra(Constants.EXTRA_MEMO_TITLE, memoTitle)
             putExtra(Constants.EXTRA_REMINDER_ID, reminder.id)
+            putExtra(ReminderWorker.EXTRA_SCHEDULED_TIME, reminder.reminderTime)
         }
 
         val pending = PendingIntent.getBroadcast(
