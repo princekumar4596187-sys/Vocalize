@@ -9,9 +9,9 @@
 ![Target SDK](https://img.shields.io/badge/Target%20SDK-API%2034-blue)
 ![Architecture](https://img.shields.io/badge/Architecture-MVVM%20%2B%20Clean-orange)
 ![License](https://img.shields.io/badge/License-MIT-lightgrey)
-![Build](https://github.com/your-org/vocalize/actions/workflows/build-debug-apk.yml/badge.svg)
+![Build](https://github.com/neet-ctrl/Vocalize/actions/workflows/build-debug-apk.yml/badge.svg)
 
-**Vocalize** is a production-ready, feature-complete Android voice memo application built entirely with Kotlin and Jetpack Compose. It delivers offline voice-to-text transcription, smart reminders, playlist management, Google Drive backup, and an advanced home screen widget — all in a beautiful Material 3 dark/light UI.
+**Vocalize** is a production-ready, feature-complete Android voice memo application built entirely with Kotlin and Jetpack Compose. It delivers offline voice-to-text transcription, smart reminders, playlist and category management, full app backup export/import, and an advanced home screen widget — all in a beautiful Material 3 dark/light UI.
 
 [Features](#-features) • [Screenshots](#-architecture) • [Architecture](#-architecture) • [Build](#-building-the-apk) • [CI/CD](#-cicd--github-actions) • [Contributing](#-contributing)
 
@@ -49,6 +49,7 @@
 | Repeat reminders | Daily, Weekly, or Custom days (e.g. Mon/Wed/Fri) |
 | Notification actions | Play (opens app & plays), Snooze (configurable), Dismiss |
 | Full-screen intent | Android 10+ shows large player card when phone unlocks |
+| Reminder tone control | Select a custom tone folder, preview sounds, and test reminder playback |
 | Daily digest | Configurable morning notification listing today's reminders |
 | Boot reschedule | All reminders restored after device reboot |
 
@@ -77,14 +78,14 @@
 | Auto-transcribe | Runs in background after every new recording |
 | Multi-language | Download additional Vosk language models in Settings |
 
-### ☁️ Google Drive Backup
+### ☁️ Backup & Restore
 | Feature | Description |
 |---|---|
-| No paid credentials | Uses Google Sign-In + Drive `AppDataFolder` (invisible to user, free) |
-| Backup contents | Room database export + all audio files, zipped before upload |
-| Manual backup | Single "Backup Now" button in Settings |
-| Restore | Fetches latest backup, replaces local data |
-| Timestamp | Last backup date shown in Settings |
+| Export backup | Create a full `.voc` backup package with audio, memos, categories, tags, playlists, and reminders |
+| Import backup | Restore app data from a `.voc` backup file, including audio and reminders |
+| Local control | Choose the folder or backup file directly from the device |
+| Manual backup | Export from Settings using a file picker |
+| Restore | Import the selected `.voc` file and restore app state |
 
 ### 🎨 UI & Animations
 | Feature | Description |
@@ -174,7 +175,6 @@ app/
 | Lottie Compose | Animations | 6.4.1 |
 | DataStore | Preferences | 1.1.1 |
 | Accompanist Permissions | Runtime permissions | 0.34.0 |
-| Google Drive API | Cloud backup | v3-rev20240521-2.0.0 |
 | Coil | Image loading | 2.6.0 |
 | Coroutines | Async | 1.8.1 |
 
@@ -189,7 +189,7 @@ app/
 
 ### Clone and build
 ```bash
-git clone https://github.com/your-org/vocalize.git
+git clone https://github.com/neet-ctrl/Vocalize.git
 cd vocalize/vocalize-android
 
 # Build debug APK
@@ -279,7 +279,7 @@ Add the following secrets to your GitHub repository (`Settings → Secrets → A
 | `USE_FULL_SCREEN_INTENT` | Full-screen reminder on lock screen | Android 10+ |
 | `FOREGROUND_SERVICE` | Background recording / playback | All |
 | `FOREGROUND_SERVICE_MEDIA_PLAYBACK` | Media foreground service type | Android 10+ |
-| `INTERNET` | Vosk model download + Google Drive backup | All |
+| `INTERNET` | Vosk model download + local backup export/import | All |
 | `ACCESS_NETWORK_STATE` | Check connectivity before backup | All |
 | `RECEIVE_BOOT_COMPLETED` | Reschedule reminders after reboot | All |
 | `VIBRATE` | Notification vibration | All |
@@ -329,7 +329,7 @@ app/src/main/res/
 ## 🔐 Privacy & Data
 
 - **No data is collected.** All recordings stay on-device in the app's private internal storage.
-- **Google Drive backup** uses `AppDataFolder` — the backup is accessible only by this app and is deleted if the app is uninstalled.
+- **Backup export/import** uses a local `.voc` file package with all memos, audio, categories, playlists, and reminders.
 - **Vosk transcription** runs 100% on-device. No audio is ever sent to a server.
 
 ---
@@ -371,7 +371,9 @@ app/src/main/res/
 ```
 MIT License
 
-Copyright (c) 2024 Vocalize
+Open source repository: https://github.com/neet-ctrl/Vocalize
+
+Copyright (c) 2024 ✨ shakti kumar ✨
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -396,6 +398,6 @@ SOFTWARE.
 
 <div align="center">
 
-Built with ❤️ using Kotlin & Jetpack Compose
+Built with ❤️ by ✨ shakti kumar ✨ using Kotlin & Jetpack Compose
 
 </div>

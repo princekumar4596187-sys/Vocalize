@@ -17,6 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -445,13 +446,21 @@ fun SettingsScreen(
                 SettingsActionRow(
                     icon = Icons.Default.OpenInNew,
                     iconTint = VocalizeAccentBlue,
-                    title = "Open source licenses",
-                    subtitle = "Vosk, Room, Hilt and more",
+                    title = "Open source repository",
+                    subtitle = "Hosted on GitHub: neet-ctrl/Vocalize",
                     onClick = {
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/alphacep/vosk-android-demo"))
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/neet-ctrl/Vocalize"))
                         context.startActivity(intent)
                     }
                 )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    AnimatedOwnerBadge("Shakti Kumar")
+                }
             }
 
             Spacer(Modifier.height(80.dp))
@@ -907,6 +916,43 @@ private fun SettingsInfoRow(
             Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
             if (subtitle.isNotBlank()) Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
+    }
+}
+
+@Composable
+private fun AnimatedOwnerBadge(name: String) {
+    val transition = rememberInfiniteTransition()
+    val scale by transition.animateFloat(
+        initialValue = 0.98f,
+        targetValue = 1.05f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1400, easing = EaseInOut),
+            repeatMode = RepeatMode.Reverse
+        )
+    )
+    val color by transition.animateColor(
+        initialValue = VocalizePurple,
+        targetValue = VocalizeAccentBlue,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1400, easing = EaseInOut),
+            repeatMode = RepeatMode.Reverse
+        )
+    )
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer(scaleX = scale, scaleY = scale),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(Icons.Default.Star, null, tint = color, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.width(8.dp))
+        Text(
+            "Shakti Kumar — Owner",
+            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+            color = color
+        )
     }
 }
 
