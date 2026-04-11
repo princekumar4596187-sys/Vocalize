@@ -33,7 +33,24 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
 
         when (intent.action) {
             Constants.ACTION_PLAY -> {
-                ReminderWorker.enqueue(context, memoId, memoTitle, reminderId)
+                // Start the tone service immediately — Android allows this because we hold
+                // USE_EXACT_ALARM / SCHEDULE_EXACT_ALARM which exempts AlarmManager-fired
+                // receivers from background foreground-service restrictions.
+                val serviceIntent = Intent(context, ReminderToneService::class.java).apply {
+                    action = ReminderToneService.ACTION_START_REMINDER
+                    putExtra(Constants.EXTRA_MEMO_ID, memoId)
+                    putExtra(Constants.EXTRA_MEMO_TITLE, memoTitle)
+                    reminderId?.let { putExtra(Constants.EXTRA_REMINDER_ID, it) }
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    context.startForegroundService(serviceIntent)
+                } else {
+                    context.startService(serviceIntent)
+                }
+
+                // Hand off DB work to WorkManager — runs reliably even if process is killed,
+                // no 10-second goAsync timeout risk, no conflict with the service notification.
+                ReminderWorker.enqueueDbWork(context, memoId, memoTitle, reminderId)
                 pendingResult.finish()
                 return
             }
@@ -92,7 +109,6 @@ class ReminderBroadcastReceiver : BroadcastReceiver() {
             repeatType = RepeatType.NONE,
             customDays = ""
         )
-
         memoRepository.insertReminder(tempReminder)
         alarmScheduler.scheduleReminder(tempReminder, memoTitle)
         refreshMemoReminderFields(memoId)

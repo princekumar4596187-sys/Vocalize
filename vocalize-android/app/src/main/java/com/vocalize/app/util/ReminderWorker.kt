@@ -1,14 +1,18 @@
 package com.vocalize.app.util
 
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.Context
-import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
+import androidx.core.app.NotificationCompat
 import androidx.hilt.work.HiltWorker
 import androidx.work.*
+import com.vocalize.app.R
+import com.vocalize.app.VocalizeApplication
 import com.vocalize.app.data.local.entity.RepeatType
 import com.vocalize.app.data.repository.MemoRepository
-import com.vocalize.app.service.ReminderToneService
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
@@ -18,7 +22,6 @@ import java.util.concurrent.TimeUnit
 class ReminderWorker @AssistedInject constructor(
     @Assisted private val appContext: Context,
     @Assisted workerParams: WorkerParameters,
-    private val notificationHelper: NotificationHelper,
     private val memoRepository: MemoRepository,
     private val alarmScheduler: ReminderAlarmScheduler
 ) : CoroutineWorker(appContext, workerParams) {
@@ -28,20 +31,7 @@ class ReminderWorker @AssistedInject constructor(
         val memoTitle = inputData.getString(Constants.EXTRA_MEMO_TITLE) ?: "Voice Memo"
         val reminderId = inputData.getString(Constants.EXTRA_REMINDER_ID)
 
-        setForeground(getForegroundInfo())
-
-        val serviceIntent = Intent(appContext, ReminderToneService::class.java).apply {
-            action = ReminderToneService.ACTION_START_REMINDER
-            putExtra(Constants.EXTRA_MEMO_ID, memoId)
-            putExtra(Constants.EXTRA_MEMO_TITLE, memoTitle)
-            reminderId?.let { putExtra(Constants.EXTRA_REMINDER_ID, it) }
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            appContext.startForegroundService(serviceIntent)
-        } else {
-            appContext.startService(serviceIntent)
-        }
-
+        // Handle repeat scheduling and DB cleanup
         if (reminderId != null) {
             val reminder = memoRepository.getReminderById(reminderId)
             if (reminder != null) {
@@ -57,20 +47,42 @@ class ReminderWorker @AssistedInject constructor(
         return Result.success()
     }
 
+    // Required by WorkManager for expedited workers on API < 31 (uses foreground service).
+    // Uses a worker-specific notification ID that does NOT conflict with ReminderToneService.
     override suspend fun getForegroundInfo(): ForegroundInfo {
-        val memoId = inputData.getString(Constants.EXTRA_MEMO_ID) ?: "unknown"
-        val memoTitle = inputData.getString(Constants.EXTRA_MEMO_TITLE) ?: "Voice Memo"
-        val reminderId = inputData.getString(Constants.EXTRA_REMINDER_ID)
-        val notification = notificationHelper.buildReminderNotification(memoId, memoTitle, reminderId)
+        val memoId = inputData.getString(Constants.EXTRA_MEMO_ID) ?: "worker"
+        val workerNotifId = "reminder_db_work_$memoId".hashCode()
+        val notification = buildWorkerNotification()
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            ForegroundInfo(
-                memoId.hashCode(),
-                notification,
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
-            )
+            ForegroundInfo(workerNotifId, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
         } else {
-            ForegroundInfo(memoId.hashCode(), notification)
+            ForegroundInfo(workerNotifId, notification)
         }
+    }
+
+    private fun buildWorkerNotification(): Notification {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val manager = appContext.getSystemService(NotificationManager::class.java)
+            if (manager.getNotificationChannel(WORKER_CHANNEL_ID) == null) {
+                val channel = NotificationChannel(
+                    WORKER_CHANNEL_ID,
+                    "Reminder Scheduler",
+                    NotificationManager.IMPORTANCE_LOW
+                ).apply {
+                    description = "Used internally to schedule reminders reliably"
+                    setShowBadge(false)
+                }
+                manager.createNotificationChannel(channel)
+            }
+        }
+        return NotificationCompat.Builder(appContext, WORKER_CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_alarm)
+            .setContentTitle("Scheduling reminder...")
+            .setContentText("Updating reminder schedule")
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setOngoing(false)
+            .setSilent(true)
+            .build()
     }
 
     private suspend fun refreshMemoReminderFields(memoId: String) {
@@ -93,9 +105,10 @@ class ReminderWorker @AssistedInject constructor(
     }
 
     companion object {
-        const val WORK_TAG = "reminder_worker"
+        const val WORK_TAG = "reminder_db_worker"
+        private const val WORKER_CHANNEL_ID = "vocalize_reminder_worker"
 
-        fun enqueue(context: Context, memoId: String, memoTitle: String, reminderId: String?) {
+        fun enqueueDbWork(context: Context, memoId: String, memoTitle: String, reminderId: String?) {
             val data = workDataOf(
                 Constants.EXTRA_MEMO_ID to memoId,
                 Constants.EXTRA_MEMO_TITLE to memoTitle,
@@ -107,32 +120,7 @@ class ReminderWorker @AssistedInject constructor(
                 .addTag(WORK_TAG)
                 .build()
             WorkManager.getInstance(context).enqueueUniqueWork(
-                "reminder_fire_${reminderId ?: memoId}",
-                ExistingWorkPolicy.REPLACE,
-                request
-            )
-        }
-
-        fun scheduleWithDelay(
-            context: Context,
-            memoId: String,
-            memoTitle: String,
-            reminderId: String?,
-            delayMillis: Long
-        ) {
-            val data = workDataOf(
-                Constants.EXTRA_MEMO_ID to memoId,
-                Constants.EXTRA_MEMO_TITLE to memoTitle,
-                Constants.EXTRA_REMINDER_ID to reminderId
-            )
-            val request = OneTimeWorkRequestBuilder<ReminderWorker>()
-                .setInputData(data)
-                .setInitialDelay(delayMillis, TimeUnit.MILLISECONDS)
-                .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
-                .addTag(WORK_TAG)
-                .build()
-            WorkManager.getInstance(context).enqueueUniqueWork(
-                "reminder_scheduled_${reminderId ?: memoId}",
+                "reminder_db_${reminderId ?: memoId}",
                 ExistingWorkPolicy.REPLACE,
                 request
             )
