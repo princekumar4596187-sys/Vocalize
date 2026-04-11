@@ -35,17 +35,18 @@ class NotificationHelper @Inject constructor(
     private var reminderSoundUri: Uri? = null
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    fun showReminderNotification(memoId: String, memoTitle: String) {
-        notificationManager.notify(memoId.hashCode(), buildReminderNotification(memoId, memoTitle))
+    fun showReminderNotification(memoId: String, memoTitle: String, reminderId: String? = null) {
+        notificationManager.notify(memoId.hashCode(), buildReminderNotification(memoId, memoTitle, reminderId))
     }
 
-    fun buildReminderNotification(memoId: String, memoTitle: String): Notification {
+    fun buildReminderNotification(memoId: String, memoTitle: String, reminderId: String? = null): Notification {
         val notifId = memoId.hashCode()
 
         val openIntent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             putExtra(Constants.EXTRA_MEMO_ID, memoId)
             putExtra(Constants.EXTRA_ACTION_PLAY, true)
+            reminderId?.let { putExtra(Constants.EXTRA_REMINDER_ID, it) }
         }
         val openPending = PendingIntent.getActivity(
             context, notifId, openIntent,
@@ -56,6 +57,7 @@ class NotificationHelper @Inject constructor(
             action = Constants.ACTION_REMINDER_PLAY
             putExtra(Constants.EXTRA_MEMO_ID, memoId)
             putExtra(Constants.EXTRA_MEMO_TITLE, memoTitle)
+            reminderId?.let { putExtra(Constants.EXTRA_REMINDER_ID, it) }
         }
         val playPending = PendingIntent.getBroadcast(
             context, notifId + 4, playIntent,
@@ -66,6 +68,7 @@ class NotificationHelper @Inject constructor(
             action = ReminderToneService.ACTION_SHOW_NOTE
             putExtra(Constants.EXTRA_MEMO_ID, memoId)
             putExtra(Constants.EXTRA_MEMO_TITLE, memoTitle)
+            reminderId?.let { putExtra(Constants.EXTRA_REMINDER_ID, it) }
         }
         val notePending = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             PendingIntent.getForegroundService(
@@ -83,6 +86,7 @@ class NotificationHelper @Inject constructor(
             action = Constants.ACTION_SNOOZE
             putExtra(Constants.EXTRA_MEMO_ID, memoId)
             putExtra(Constants.EXTRA_MEMO_TITLE, memoTitle)
+            reminderId?.let { putExtra(Constants.EXTRA_REMINDER_ID, it) }
         }
         val snoozePending = PendingIntent.getBroadcast(
             context, notifId + 1, snoozeIntent,
@@ -92,6 +96,7 @@ class NotificationHelper @Inject constructor(
         val dismissIntent = Intent(context, ReminderBroadcastReceiver::class.java).apply {
             action = Constants.ACTION_DISMISS
             putExtra(Constants.EXTRA_MEMO_ID, memoId)
+            reminderId?.let { putExtra(Constants.EXTRA_REMINDER_ID, it) }
         }
         val dismissPending = PendingIntent.getBroadcast(
             context, notifId + 2, dismissIntent,
@@ -176,13 +181,14 @@ class NotificationHelper @Inject constructor(
         }
     }
 
-    fun buildReminderNoteNotification(memoId: String, memoTitle: String, noteText: String): Notification {
+    fun buildReminderNoteNotification(memoId: String, memoTitle: String, noteText: String, reminderId: String? = null): Notification {
         val notifId = memoId.hashCode()
 
         val backIntent = Intent(context, ReminderToneService::class.java).apply {
             action = ReminderToneService.ACTION_BACK_TO_REMINDER
             putExtra(Constants.EXTRA_MEMO_ID, memoId)
             putExtra(Constants.EXTRA_MEMO_TITLE, memoTitle)
+            reminderId?.let { putExtra(Constants.EXTRA_REMINDER_ID, it) }
         }
         val backPending = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             PendingIntent.getForegroundService(
@@ -199,6 +205,7 @@ class NotificationHelper @Inject constructor(
         val dismissIntent = Intent(context, ReminderBroadcastReceiver::class.java).apply {
             action = Constants.ACTION_DISMISS
             putExtra(Constants.EXTRA_MEMO_ID, memoId)
+            reminderId?.let { putExtra(Constants.EXTRA_REMINDER_ID, it) }
         }
         val dismissPending = PendingIntent.getBroadcast(
             context, notifId + 2, dismissIntent,
@@ -221,13 +228,13 @@ class NotificationHelper @Inject constructor(
             .build()
     }
 
-    fun showReminderNoteNotification(memoId: String, memoTitle: String) {
+    fun showReminderNoteNotification(memoId: String, memoTitle: String, reminderId: String? = null) {
         val notifId = memoId.hashCode()
 
         coroutineScope.launch {
             val memo = memoRepository.getMemoById(memoId)
             val noteText = memo?.textNote?.takeIf { it.isNotBlank() } ?: "No notes available."
-            notificationManager.notify(notifId, buildReminderNoteNotification(memoId, memoTitle, noteText))
+            notificationManager.notify(notifId, buildReminderNoteNotification(memoId, memoTitle, noteText, reminderId))
         }
     }
 

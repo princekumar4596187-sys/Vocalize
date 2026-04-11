@@ -17,6 +17,7 @@ object Constants {
     const val ACTION_SNOOZE = "com.vocalize.app.ACTION_SNOOZE"
     const val ACTION_DISMISS = "com.vocalize.app.ACTION_DISMISS"
     const val EXTRA_MEMO_ID = "memo_id"
+    const val EXTRA_REMINDER_ID = "reminder_id"
     const val EXTRA_MEMO_TITLE = "memo_title"
     const val EXTRA_ACTION_PLAY = "action_play"
     const val EXTRA_FULL_SCREEN_REMINDER = "full_screen_reminder"

@@ -6,43 +6,57 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import com.vocalize.app.data.local.entity.MemoEntity
+import com.vocalize.app.data.local.entity.ReminderEntity
 import com.vocalize.app.data.local.entity.RepeatType
+import com.vocalize.app.data.repository.MemoRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.first
 import java.util.Calendar
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class ReminderAlarmScheduler @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val memoRepository: MemoRepository
 ) {
     private val alarmManager = context.getSystemService(AlarmManager::class.java)
 
-    fun scheduleReminder(memo: MemoEntity) {
-        val reminderTime = memo.reminderTime ?: return
-        if (reminderTime <= System.currentTimeMillis()) return
+    suspend fun scheduleReminder(memo: MemoEntity) {
+        val nextReminder = memoRepository.getRemindersForMemo(memo.id)
+            .first()
+            .filter { it.reminderTime > System.currentTimeMillis() }
+            .minByOrNull { it.reminderTime }
+            ?: return
+
+        scheduleReminder(nextReminder, memo.title)
+    }
+
+    suspend fun scheduleReminder(reminder: ReminderEntity, memoTitle: String) {
+        if (reminder.reminderTime <= System.currentTimeMillis()) return
 
         val intent = Intent(context, ReminderBroadcastReceiver::class.java).apply {
             action = Constants.ACTION_PLAY
-            putExtra(Constants.EXTRA_MEMO_ID, memo.id)
-            putExtra(Constants.EXTRA_MEMO_TITLE, memo.title)
+            putExtra(Constants.EXTRA_MEMO_ID, reminder.memoId)
+            putExtra(Constants.EXTRA_MEMO_TITLE, memoTitle)
+            putExtra(Constants.EXTRA_REMINDER_ID, reminder.id)
         }
 
         val pending = PendingIntent.getBroadcast(
             context,
-            memo.id.hashCode(),
+            reminder.memoId.hashCode(),
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             if (alarmManager.canScheduleExactAlarms()) {
-                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, reminderTime, pending)
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, reminder.reminderTime, pending)
             } else {
-                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, reminderTime, pending)
+                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, reminder.reminderTime, pending)
             }
         } else {
-            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, reminderTime, pending)
+            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, reminder.reminderTime, pending)
         }
     }
 

@@ -51,7 +51,8 @@ class ReminderToneService : Service() {
     private fun startReminder(intent: Intent) {
         val memoId = intent.getStringExtra(Constants.EXTRA_MEMO_ID) ?: "test_reminder"
         val memoTitle = intent.getStringExtra(Constants.EXTRA_MEMO_TITLE) ?: "Reminder tone test"
-        val notification = notificationHelper.buildReminderNotification(memoId, memoTitle)
+        val reminderId = intent.getStringExtra(Constants.EXTRA_REMINDER_ID)
+        val notification = notificationHelper.buildReminderNotification(memoId, memoTitle, reminderId)
         val notificationId = memoId.hashCode()
 
         startForeground(notificationId, notification)
@@ -65,11 +66,12 @@ class ReminderToneService : Service() {
         stopTone()
         val memoId = intent.getStringExtra(Constants.EXTRA_MEMO_ID) ?: "test_reminder"
         val memoTitle = intent.getStringExtra(Constants.EXTRA_MEMO_TITLE) ?: "Reminder tone test"
+        val reminderId = intent.getStringExtra(Constants.EXTRA_REMINDER_ID)
 
         serviceScope.launch {
             val memo = memoRepository.getMemoById(memoId)
             val noteText = memo?.textNote?.takeIf { it.isNotBlank() } ?: "No notes available."
-            val notification = notificationHelper.buildReminderNoteNotification(memoId, memoTitle, noteText)
+            val notification = notificationHelper.buildReminderNoteNotification(memoId, memoTitle, noteText, reminderId)
             startForeground(memoId.hashCode(), notification)
         }
     }
@@ -77,7 +79,8 @@ class ReminderToneService : Service() {
     private fun showReminderNotification(intent: Intent) {
         val memoId = intent.getStringExtra(Constants.EXTRA_MEMO_ID) ?: "test_reminder"
         val memoTitle = intent.getStringExtra(Constants.EXTRA_MEMO_TITLE) ?: "Reminder tone test"
-        val notification = notificationHelper.buildReminderNotification(memoId, memoTitle)
+        val reminderId = intent.getStringExtra(Constants.EXTRA_REMINDER_ID)
+        val notification = notificationHelper.buildReminderNotification(memoId, memoTitle, reminderId)
         startForeground(memoId.hashCode(), notification)
     }
 

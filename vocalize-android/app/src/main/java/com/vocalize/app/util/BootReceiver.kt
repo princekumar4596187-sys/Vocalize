@@ -21,11 +21,8 @@ class BootReceiver : BroadcastReceiver() {
             intent.action == "android.intent.action.LOCKED_BOOT_COMPLETED"
         ) {
             CoroutineScope(Dispatchers.IO).launch {
-                val now = System.currentTimeMillis()
                 memoRepository.getAllMemosWithReminders().forEach { memo ->
-                    if ((memo.reminderTime ?: 0L) > now) {
-                        alarmScheduler.scheduleReminder(memo)
-                    }
+                    alarmScheduler.scheduleReminder(memo)
                 }
             }
         }
